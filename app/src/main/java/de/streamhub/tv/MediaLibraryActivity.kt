@@ -74,7 +74,7 @@ class MediaLibraryActivity : Activity() {
         val brand = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
         brand.addView(Ui.text(this, "▶  STREAMHUB", 24f, Ui.TEXT, true),
             Ui.lp(dp(235), dp(53)))
-        brand.addView(Ui.text(this, "PREMIUM  ·  BIBLIOTHEK 2.0", 12f, Ui.BLUE, true),
+        brand.addView(Ui.text(this, "PREMIUM  ·  BIBLIOTHEK 2.1", 12f, Ui.BLUE, true),
             LinearLayout.LayoutParams(0, dp(53), 1f))
         brand.addView(Ui.button(this, "API-Key", true) { showKeyDialog() },
             Ui.lp(-2, dp(43)).apply { rightMargin = dp(8) })
@@ -389,9 +389,11 @@ class MediaLibraryActivity : Activity() {
         panel.addView(Ui.text(this, item.year + "  ·  ★ " +
             "%.1f".format(java.util.Locale.GERMANY, item.rating) + " / 10",
             15f, Ui.SOFT), Ui.lp(-1, dp(39)))
+        val sourceHost = Ui.vertical(this)
         val buttons = Ui.horizontal(this)
-        buttons.addView(Ui.button(this, "▶  Player wählen", true) {
-            selectPlayer(item)
+        buttons.addView(Ui.button(this, "▶  Jetzt ansehen", true) {
+            (content.parent as? ScrollView)?.smoothScrollTo(0, sourceHost.top)
+            sourceHost.requestFocus()
         }, Ui.lp(dp(215), dp(51)).apply { rightMargin = dp(11) })
         buttons.addView(Ui.button(this,
             if (isSaved(item)) "♥  Entfernen" else "♡  Merken", true) {
@@ -404,6 +406,27 @@ class MediaLibraryActivity : Activity() {
         panel.addView(buttons, Ui.lp(-1, dp(67)))
         hero.addView(panel, FrameLayout.LayoutParams(-1, -1))
         content.addView(hero, Ui.lp(-1, dp(290)).apply { bottomMargin = dp(15) })
+        content.addView(sourceHost, Ui.lp(-1, -2).apply { bottomMargin = dp(18) })
+        val sourcePanel = TitleSourcesPanel(
+            activity = this,
+            tmdb = client,
+            title = item,
+            openPlayer = { imdb, custom -> openDeVideo(item, imdb, custom) },
+            openEpisode = { imdb -> episodeDialog(item, imdb) },
+            openWebsite = { site ->
+                startActivity(Intent(this, BrowserActivity::class.java).apply {
+                    putExtra("name", site.name)
+                    putExtra("url", site.url)
+                })
+            },
+            openTmdbWatch = { url ->
+                startActivity(Intent(this, BrowserActivity::class.java).apply {
+                    putExtra("name", "TMDB · Bezugsquellen für " + item.name)
+                    putExtra("url", url)
+                })
+            }
+        )
+        sourcePanel.render(sourceHost) { valid(generation) }
         val infoHost = Ui.vertical(this)
         content.addView(infoHost)
         heading(infoHost, "Über diesen Titel")
@@ -423,21 +446,19 @@ class MediaLibraryActivity : Activity() {
                 }.filter { it.isNotBlank() }.take(5).joinToString("  ·  ")
                 val runtime = if (item.kind == "movie") data.optInt("runtime", 0) else 0
                 val imdb = imdbId(data, item.kind)
+                sourcePanel.updateImdb(imdb)
                 message(infoHost, listOfNotNull(
                     if (tags.isNotBlank()) tags else null,
                     if (runtime > 0) runtime.toString() + " Minuten" else null,
                     if (imdb.isNotBlank()) "IMDb: " + imdb else "IMDb-ID nicht vorhanden"
                 ).joinToString("\n"), 100)
-                infoHost.addView(Ui.button(this, "▶  Wiedergabeoptionen", true) {
-                    showPlayerOptions(item, imdb)
-                }, Ui.lp(dp(255), dp(49)).apply { bottomMargin = dp(15) })
-                message(infoHost, "Metadaten zeigen keine Streaming-Verfügbarkeit an. " +
-                    "Die eigentliche Wiedergabe hängt von der gewählten Quelle ab.", 66)
+                message(infoHost, "Die Quellen-Auswahl befindet sich direkt oberhalb dieser Infos. " +
+                    "TMDB/JustWatch-Anbieterangaben sind keine Garantie für einen abspielbaren Stream.", 69)
             }, onFailure = { error ->
+                sourcePanel.updateImdb("")
                 message(infoHost, "Details nicht verfügbar: " + error.message.orEmpty(), 76)
-                infoHost.addView(Ui.button(this, "Quellen öffnen", true) {
-                    selectSavedWebsite()
-                }, Ui.lp(dp(200), dp(46)))
+                message(infoHost, "Gespeicherte Webseiten und Verfügbarkeitsangaben " +
+                    "bleiben oben unabhängig nutzbar.", 58)
             })
         }
         showAttribution(content)
