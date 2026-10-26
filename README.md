@@ -1,3 +1,17 @@
+# StreamHub Premium V1.9 — Erweiterte DeVideoSRC-Integration
+
+- Dedizierter Android-TV-Player mit iframe-Integration, Play/Pause/Seek, Info zur Quelle und lokal gespeichertem Wiedergabefortschritt.
+- Dokumentierte postMessage-Befehle: play, pause, seek, getCurrentTime, getDuration, getPaused und getSource.
+- Player-Ereignisse: akzeptiert nur Nachrichten von devideosrc.co; Fehler, Status und Wiedergabezeit werden soweit lesbar angezeigt. Das genaue Event-Payload-Schema ist nicht öffentlich beschrieben und muss am Gerät getestet werden.
+- Player-Optionen: autoplay, muted, controls, lastserver und StreamHUB-Akzentfarbe. Direkte Episodenwahl bleibt erhalten.
+- Experimentell: JSON-Abfragen /api/providers und /api/resolve?id=IMDb-ID über manuelle Buttons, ohne automatische Stream-Extraktion.
+- Einschränkung: Die Dokumentation verrät nicht das erwartete Query-Format und Antwortschema von /api/resolve. Die verwendete id-Abfrage ist eine unbestätigte Annahme. Bei Fehlern zeigt die App den HTTP-Status.
+- Die TV-Kompatibilität, Wiedergabe, Ereignisfelder und Hoster wurden nicht unabhängig überprüft; der GitHub-APK-Build kontrolliert nur die Android-Kompilierung.
+- GitHub Actions: Build Android TV APK → Artifacts → StreamHub-Premium-V1.9-debug-apk → app-debug.apk.
+- Ohne DRM-Umgehung, keine Video-URL-Extraktion, keine Zusicherung der Lizenzsituation von Inhalten externer Hoster.
+
+---
+
 # StreamHub Premium V1.8 — DeVideoSRC Player (Android TV)
 
 - **Neuer Menüpunkt „DeVideoSRC“** und Schnellzugriff auf der Startseite.

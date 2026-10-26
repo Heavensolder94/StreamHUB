@@ -24,21 +24,46 @@ internal object DeVideoSrc {
         return candidate.takeIf { validId.matches(it) }?.lowercase(java.util.Locale.ROOT)
     }
 
-    fun movie(id: String, custom: Boolean = false): String {
+    data class Options(
+        val autoplay: Boolean = false,
+        val muted: Boolean = false,
+        val controls: Boolean = true,
+        val preferred: String = ""
+    )
+
+    fun options(context: Context): Options {
+        val p = context.getSharedPreferences("streamhub_local", Context.MODE_PRIVATE)
+        return Options(
+            p.getBoolean("devideosrc_autoplay", false),
+            p.getBoolean("devideosrc_muted", false),
+            p.getBoolean("devideosrc_controls", true),
+            p.getString("devideosrc_server", "").orEmpty().trim()
+        )
+    }
+
+    private fun params(o: Options): String {
+        val query = "?color=%236AB7FF&autoplay=" + (if (o.autoplay) "1" else "0") +
+            "&muted=" + (if (o.muted) "1" else "0") +
+            "&controls=" + (if (o.controls) "1" else "0")
+        val server = o.preferred.takeIf { it.matches(Regex("^[A-Za-z0-9_-]{1,50}$")) }
+        return query + (if (server != null) "&lastserver=" + server else "")
+    }
+
+    fun movie(id: String, custom: Boolean = false, o: Options = Options()): String {
         require(normalizeId(id) == id)
-        return if (custom) "$base/custom/movie/$id?color=%236AB7FF&autoplay=0&muted=0"
-            else "$base/movie/$id"
+        return if (custom) base + "/custom/movie/" + id + params(o)
+            else base + "/movie/" + id
     }
 
     fun series(id: String): String {
         require(normalizeId(id) == id)
-        return "$base/serial/$id"
+        return base + "/serial/" + id
     }
 
-    fun episode(id: String, season: Int, episode: Int): String {
+    fun episode(id: String, season: Int, episode: Int, o: Options = Options()): String {
         require(normalizeId(id) == id)
         require(season in 1..999 && episode in 1..999)
-        return "$base/custom/serial/$id/$season/$episode?color=%236AB7FF&autoplay=0&muted=0"
+        return base + "/custom/serial/" + id + "/" + season + "/" + episode + params(o)
     }
 }
 
@@ -88,8 +113,8 @@ internal class DeVideoSrcPanel(
     }
 
     private fun url(item: Recent): String = when (item.kind) {
-        "movie" -> DeVideoSrc.movie(item.id, item.custom)
-        "episode" -> DeVideoSrc.episode(item.id, item.season, item.episode)
+        "movie" -> DeVideoSrc.movie(item.id, item.custom, DeVideoSrc.options(activity))
+        "episode" -> DeVideoSrc.episode(item.id, item.season, item.episode, DeVideoSrc.options(activity))
         else -> DeVideoSrc.series(item.id)
     }
 
@@ -157,7 +182,28 @@ internal class DeVideoSrcPanel(
             isChecked = prefs.getBoolean("devideosrc_custom", true)
             isFocusable = true
         }
-        into.addView(custom, Ui.lp(-1, dp(52)).apply { bottomMargin = dp(7) })
+        into.addView(custom, Ui.lp(-1, dp(48)))
+
+        fun setting(name: String, key: String, default: Boolean): CheckBox =
+            CheckBox(activity).apply {
+                text = name
+                setTextColor(Ui.SOFT)
+                isFocusable = true
+                isChecked = prefs.getBoolean(key, default)
+                into.addView(this, Ui.lp(-1, dp(43)))
+            }
+        val autoplay = setting("Automatisch abspielen", "devideosrc_autoplay", false)
+        val muted = setting("Stumm starten", "devideosrc_muted", false)
+        val controls = setting("Native Player-Steuerung anzeigen", "devideosrc_controls", true)
+        into.addView(Ui.text(activity, "BEVORZUGTER SERVER (OPTIONAL)", 12f, Ui.MUTED, true),
+            Ui.lp(-1, dp(28)))
+        val preferred = EditText(activity).apply {
+            setSingleLine(true)
+            hint = "Server-ID, z. B. dropload"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            setText(prefs.getString("devideosrc_server", "") ?: "")
+        }
+        into.addView(preferred, Ui.lp(-1, dp(54)).apply { bottomMargin = dp(12) })
 
         fun start(kind: String) {
             val id = DeVideoSrc.normalizeId(idInput.text.toString())
@@ -177,10 +223,21 @@ internal class DeVideoSrcPanel(
                 seasonInput.requestFocus()
                 return
             }
+            val server = preferred.text.toString().trim()
+            if (server.isNotEmpty() && !server.matches(Regex("^[A-Za-z0-9_-]{1,50}$"))) {
+                Toast.makeText(activity, "Server-ID: nur Buchstaben, Zahlen, _ und -.",
+                    Toast.LENGTH_LONG).show()
+                preferred.requestFocus()
+                return
+            }
             val item = Recent(id, kind, season ?: 1, episode ?: 1, custom.isChecked,
                 nameInput.text.toString().trim().take(90))
             prefs.edit().putString("devideosrc_last_id", id)
-                .putBoolean("devideosrc_custom", custom.isChecked).apply()
+                .putBoolean("devideosrc_custom", custom.isChecked)
+                .putBoolean("devideosrc_autoplay", autoplay.isChecked)
+                .putBoolean("devideosrc_muted", muted.isChecked)
+                .putBoolean("devideosrc_controls", controls.isChecked)
+                .putString("devideosrc_server", server).apply()
             saveRecent(item)
             onOpen(display(item), url(item))
         }
@@ -197,6 +254,26 @@ internal class DeVideoSrcPanel(
             "Serien öffnen: Staffelwahl im Standardplayer. Folge starten: direkte Episodenwahl. " +
             "Ob ein Video abspielbar ist, hängt vom Drittanbieter und der Android-WebView ab.",
             12f, Ui.MUTED), Ui.lp(-1, dp(58)))
+
+        val apiRow = Ui.horizontal(activity)
+        apiRow.addView(Ui.button(activity, "API: Anbieter anzeigen", true) {
+            DeVideoApi.inspect(activity, "/api/providers", "DeVideoSRC · Anbieter")
+        }, Ui.lp(dp(220), dp(47)).apply { rightMargin = dp(11) })
+        apiRow.addView(Ui.button(activity, "API: Titelinformationen", true) {
+            val id = DeVideoSrc.normalizeId(idInput.text.toString())
+            if (id == null) {
+                Toast.makeText(activity, "Zuerst eine gültige ID eingeben.",
+                    Toast.LENGTH_SHORT).show()
+            } else {
+                DeVideoApi.inspect(activity, "/api/resolve?id=" + id, "DeVideoSRC · Titel")
+            }
+        }, Ui.lp(dp(220), dp(47)))
+        into.addView(apiRow, Ui.lp(-1, dp(57)).apply { bottomMargin = dp(9) })
+        into.addView(Ui.text(activity,
+            "Die API-Endpunkte sind dokumentiert; das genaue Abfrageformat und " +
+            "die Antwortfelder wurden vom Betreiber nicht vollständig beschrieben. " +
+            "Anbieter-/Titelabfragen sind daher experimentell.",
+            12f, Ui.MUTED), Ui.lp(-1, dp(68)))
 
         val recent = readRecent()
         if (recent.isNotEmpty()) {
