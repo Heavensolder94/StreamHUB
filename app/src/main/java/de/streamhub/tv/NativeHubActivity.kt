@@ -43,6 +43,7 @@ class NativeHubActivity : Activity() {
     private var page = Page.HOME
     private var currentTitle: CatalogTitle? = null
     private var nativeDetailVisible = false
+    private var currentNative: NativeMediaSource? = null
     private val updater by lazy { GithubUpdateManager(this) }
     private var generation = 0
     private var searchText = ""
@@ -69,14 +70,18 @@ class NativeHubActivity : Activity() {
             if (isDestroyed || isFinishing) return@refresh
             waitingSources = false
             snapshot = result
-            if (currentTitle == null) showPage(page)
-            else showDetail(currentTitle!!)
+            when {
+                currentTitle != null -> showDetail(currentTitle!!)
+                currentNative != null -> showNativeDetail(currentNative!!)
+                else -> showPage(page)
+            }
         }
     }
 
     private fun showPage(next: Page, keepLimit: Boolean = false) {
         page = next
         currentTitle = null
+        currentNative = null
         nativeDetailVisible = false
         generation++
         if (!keepLimit) limit = if (next == Page.LIVE) 80 else 48
@@ -755,6 +760,7 @@ class NativeHubActivity : Activity() {
 
     private fun showNativeDetail(item: NativeMediaSource) {
         currentTitle = null
+        currentNative = item
         nativeDetailVisible = true
         generation++
         shell()
@@ -809,6 +815,7 @@ class NativeHubActivity : Activity() {
 
     private fun showDetail(title: CatalogTitle) {
         currentTitle = title
+        currentNative = null
         nativeDetailVisible = true
         generation++
         shell()
