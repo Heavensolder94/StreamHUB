@@ -85,6 +85,9 @@ class MainActivity : Activity() {
         names.addView(Ui.text(this, "PREMIUM EDITION", 10f, Ui.BLUE, true))
         branding.addView(names, Ui.lp(-1, dp(51)))
         sidebar.addView(branding, Ui.lp(-1, dp(82)))
+        sidebar.addView(Ui.button(this, "▣  FILM-BIBLIOTHEK", true) {
+            startActivity(Intent(this, MediaLibraryActivity::class.java))
+        }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(13) })
         sidebar.addView(Ui.text(this, "ENTDECKEN", 10f, Ui.MUTED, true),
             Ui.lp(-1, dp(31)))
 
@@ -124,7 +127,7 @@ class MainActivity : Activity() {
             navColumn.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
             if (choice == tab) firstNav[0] = entry
         }
-        sidebar.addView(Ui.text(this, "STREAMHUB  1.9", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "STREAMHUB  2.0", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
         sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
         val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }
@@ -200,8 +203,9 @@ class MainActivity : Activity() {
             "Anime, Filme und Serien – alles in deiner persönlichen TV-Zentrale.",
             14f, Ui.SOFT), Ui.lp(-1, dp(42)))
         val heroActions = Ui.horizontal(this)
-        heroActions.addView(Ui.button(this, "▶  ANIME ENTDECKEN", true) { showTab(Tab.ANIME) },
-            Ui.lp(dp(194), dp(41)).apply { rightMargin = dp(9) })
+        heroActions.addView(Ui.button(this, "▶  FILMBIBLIOTHEK", true) {
+            startActivity(Intent(this, MediaLibraryActivity::class.java))
+        }, Ui.lp(dp(194), dp(41)).apply { rightMargin = dp(9) })
         heroActions.addView(Ui.button(this, "▧  COVER", true) { showTab(Tab.COVERS) },
             Ui.lp(dp(150), dp(41)).apply { rightMargin = dp(9) })
         heroActions.addView(Ui.button(this, "▶  DEVIDEOSRC", true) { showTab(Tab.PLAYER) },
