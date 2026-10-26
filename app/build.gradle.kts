@@ -12,8 +12,8 @@ android {
         minSdk = 23
         targetSdk = 35
         val ciBuild = System.getenv("STREAMHUB_CI_BUILD_NUMBER")?.toIntOrNull()
-        versionCode = if (ciBuild != null) 100000 + ciBuild else 19
-        versionName = if (ciBuild != null) "2.8.$ciBuild" else "2.8.0"
+        versionCode = if (ciBuild != null) 100000 + ciBuild else 20
+        versionName = if (ciBuild != null) "2.9.$ciBuild" else "2.9.0"
     }
 
     signingConfigs {

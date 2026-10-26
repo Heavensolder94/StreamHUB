@@ -1,3 +1,31 @@
+# StreamHUB Premium V2.9 — Native-First Android TV
+
+**Neu:** Beim Start der App öffnet sich direkt **NativeHubActivity**, eine vollständig native Android-TV-Oberfläche für Filme, Serien, Anime, Live-TV, Suche, Favoriten und Weiterschauen. Die bisherige StreamHUB-Verwaltung bleibt unter **⚙ Quellen & Setup** erreichbar. Auch das signierte GitHub-Releases-Update-System wird weiterhin über die neue Startseite geprüft.
+
+## Native Quellenadapter
+
+- **M3U:** Der bereits importierte lokale Senderkatalog wird in StreamHUB als native Live-TV-Kachel geführt und über den bestehenden Media3-Player geöffnet.
+- **Xtream Codes:** Mit einem selbst eingerichteten, freigeschalteten Account werden Filme, Serien und Live-TV als native Katalogtitel geladen; bei Serien werden die vom Anbieter gelieferten Folgen zur Auswahl gestellt. Direkte Wiedergabe im vorhandenen Player.
+- **MAC/Stalker:** Das aktuell **aktivierte** Profil wird für einen begrenzten Ausschnitt seines Film-/Serien-/Live-TV-Katalogs indexiert. Inaktive Profile werden nicht ungefragt abgefragt. Abspielen und Episodenauswahl erfolgen via bestehendem Stalker-Client und Media3-Player.
+- **TMDB:** Film-/Serienposter, Beschreibungen und Anime-Kataloge werden mit dem eigenen TMDB-Schlüssel angezeigt. TMDB ist **nur eine Metadatenquelle**. Ein TMDB-Eintrag belegt keine Verfügbarkeit bei einem IPTV- oder Website-Anbieter.
+- **Externe Webseiten:** Die Webquellen sind weiterhin innerhalb einer nativen StreamHUB-Sektion erreichbar. Mit „Webseiten-Vorschauen aktualisieren“ lassen sich begrenzt **öffentlich sichtbare Titelbilder und Titellinks** aus den bereits gespeicherten Webseiten anzeigen, soweit deren öffentliches HTML dies erlaubt. Vorhandene Vorschauen erscheinen zusätzlich als Suchtreffer. Der Klick öffnet den integrierten StreamHUB-Browser auf der Originalseite; Streams und DRM werden **nicht** extrahiert.
+
+Die lokale Indexsuche führt gleichnamige Katalogtitel zusammen und zeigt eine native **Quellenwahl**. Namensgleichheit allein ist weder eine Rechte- noch eine Wiedergabebestätigung. Der Index wird höchstens zehn Minuten im Arbeitsspeicher gehalten, kein Token- oder Stream-Link wird dauerhaft darin gespeichert. Mit „↻ Quellen“ wird der Index manuell neu geladen. Maximal 1200 Xtream-Titel pro Bereich, drei Seiten je MAC-Bereich und 5000 Gesamteinträge. Die Navigation ist mit Fernbedienung und deutlich sichtbarem Fokus steuerbar.
+
+## Installation
+
+GitHub Actions → **Build Android TV APK** → erfolgreicher Lauf → **Artifacts** → `StreamHub-Premium-V2.9-debug-apk` → ZIP entpacken → `app-debug.apk`. Alternativ das vorhandene signierte GitHub-Releases-Update verwenden, sofern ein entsprechend signiertes Release veröffentlicht wurde. Debug-APKs sind nicht automatisch mit signierten Release-Installationen kompatibel. Bestehende Appdaten bei Signaturproblemen nicht ohne Sicherung deinstallieren.
+
+## Noch bestehende Grenzen
+
+- Noch **keine** beliebige Website als echte native, DRM-freie Abspielquelle. Dazu braucht jeder Anbieter einen erlaubten und technisch verfügbaren Katalog- und Playback-Zugang. Allein per Scraping lässt sich ein DRM- oder fremd gehosteter Player nicht automatisch durch Media3 ersetzen.
+- Keine vollständige serverweite IPTV-Suche über sehr große Kataloge; nur begrenzte Index-Ausschnitte. Der alte Suchbildschirm kann separat weitere Seiten abfragen.
+- TMDB-Titel werden nur über den **normalisierten Namen** gegen bereits geladene Provider-Kataloge abgeglichen; ungleiche Titel, alternative Namen und Mehrdeutigkeiten können fehlerhafte oder fehlende Zuordnungen verursachen. Deshalb wird immer der eigentliche Anbieter und die separate Wiedergabeprüfung gezeigt.
+- Ob MAC- und Xtream-Quellen wirklich abspielen, lässt sich erst mit gültigen, autorisierten Konten auf einem Gerät testen.
+- Externe Webseiten können iframe-Player, DRM, CAPTCHAs oder blockierte WebViews verwenden. In solchen Fällen bleibt nur die von der Webseite erlaubte Wiedergabe.
+
+---
+
 # StreamHUB Premium V2.8 — TV-Fokus und integrierter Webseiten-Browser
 
 Die V2.7-Funktionen (IPTV, Xtream, M3U, EPG, Quellen-Suche) bleiben erhalten. V2.8 verbessert die Oberfläche **speziell für Steuerkreuz und OK-Taste der Android-TV-Fernbedienung**:

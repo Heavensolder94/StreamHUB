@@ -73,6 +73,10 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize" />
         <activity
             android:name=".MainActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".NativeHubActivity"
             android:exported="true"
             android:screenOrientation="landscape">
             <intent-filter>
