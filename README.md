@@ -1,3 +1,29 @@
+# StreamHUB Premium V2.4 — Eigenständiges LIVE TV (ohne Kodi)
+
+Diese Version bringt einen eigenen Menüpunkt **📺 LIVE TV** in StreamHUB, sowohl auf der Startseite als auch in der Film-Bibliothek. Die Senderliste und die Wiedergabe sind native Android-TV-Funktionen: **Kodi wird weder gestartet noch benötigt**.
+
+## Was funktioniert
+
+- Ein nativer Player auf Basis von **AndroidX Media3 / ExoPlayer** mit HLS (.m3u8), DASH (.mpd) und geeigneten direkten Mediendateien. Play/Pause, TV-Fernbedienung und Buttons zum Wechseln auf den nächsten/vorherigen Sender.
+- **Eigene Senderlisten:** HTTPS-M3U-Playlist per URL oder über Androids Dateiauswahl importieren. Sender mit direkter HTTPS-Stream-Adresse einzeln hinzufügen. Doppelte URLs werden nicht erneut hinzugefügt; bestehende Favoriten bleiben erhalten.
+- Kategorien aus **group-title**, Favoriten, Namenssuche, Seitenblättern bei größeren Listen, Sender löschen, alle Sender löschen.
+- **Offizielle Webseiten-Shortcuts** zu ARD Live, ZDF Live, Pluto TV und Joyn Live. Diese öffnen den bestehenden StreamHUB-Webbrowser und keine direkten Streams. WebView-DRM-/Cookie-/Geoblocking-Beschränkungen gelten weiterhin.
+
+## Was nicht vorgetäuscht wird
+
+- xVAULT ist ein Python-Addon für Kodi. Sein LIVE-TV-Modul enthält Kodi-abhängige Senderauflösung und teils nicht verifizierte Anbieterquellen. **Es wurde nicht als StreamHUB-Katalog übernommen.** Die native StreamHUB-Version arbeitet unabhängig davon mit Nutzerdaten aus M3U-Listen.
+- Es gibt absichtlich **keine vorinstallierten frei erfundenen oder ungeprüften M3U-Senderstreams**. Ein echtes Senderbild ist erst sichtbar, nachdem du eine gültige, nutzbare Stream-URL eingerichtet hast.
+- XMLTV/EPG, xVAULT-Senderkatalog-Synchronisation, Catch-up TV, DRM-Login bei Bezahlsendern und automatische Titelfreischaltung sind noch nicht implementiert.
+- Playlists und Stream-Adressen müssen in V2.4 **HTTPS** verwenden. Abweichende HTTP/IPTV-LAN-Streams werden aus Sicherheitsgründen nicht geladen. Der Playlist-Download ist auf 1,8 MB, 10 Sekunden Lese-Timeout und 650 Sender begrenzt.
+- Sender und Favoriten werden lokal auf der Android-TV-Box gespeichert, kein Kodi, keine Server-Accounts und keine Backups aus StreamHUB ins Internet. Bei einer Deinstallation gehen lokale Daten verloren.
+- Für die eigentliche Wiedergabe sind ein funktionierender Senderstream, unterstützte Codecs und gegebenenfalls die Rechte des Anbieters erforderlich. Der APK-Build prüft nicht reale Stream-Verfügbarkeit. Nutze nur Senderangebote, auf die du berechtigt zugreifen darfst.
+
+## Installation
+
+In GitHub Actions die erfolgreiche Aktion **Build Android TV APK** öffnen → Artifacts → **StreamHub-Premium-V2.4-debug-apk** → ZIP entpacken → `app-debug.apk` installieren. Die alten Film-/Serien-/Anime-Funktionen einschließlich Kodi/xVAULT als optionalem **Filmplayer** bleiben erhalten; **LIVE TV** öffnet Kodi nicht.
+
+---
+
 # StreamHUB Premium V2.3 — Alle Quellen pro Film verbinden
 
 **Neuer Ablauf:** Film oder Serie in der TMDB-Bibliothek auswählen → „Jetzt ansehen“ → DeVideoSRC, Kodi/xVAULT, TMDB/JustWatch-Angebote und **gezielte Seitensuche auf den eigenen Webseiten** an einem gemeinsamen Ort.
