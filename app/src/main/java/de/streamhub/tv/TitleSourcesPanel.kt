@@ -31,6 +31,7 @@ internal class TitleSourcesPanel(
     private val configureKodi: () -> Unit,
     private val testKodi: () -> Unit,
     private val openWebsite: (Site) -> Unit,
+    private val openDirectory: (String) -> Unit,
     private val openTmdbWatch: (String) -> Unit
 ) {
     private lateinit var playerHost: LinearLayout
@@ -62,9 +63,9 @@ internal class TitleSourcesPanel(
         info(providerHost, "Verfügbarkeit via TMDB / JustWatch wird geladen …", 51)
         loadProviders(isActive)
 
-        heading(into, "3 · Deine gespeicherten Webseiten")
-        info(into, "Diese Webseiten sind nur Verknüpfungen. StreamHUB kann nicht bestätigen, " +
-            "dass der ausgewählte Titel dort vorhanden oder abspielbar ist.", 73)
+        heading(into, "3 · Titel auf deinen Webseiten suchen")
+        info(into, "Über eine gezielte Seitensuche erreichst du Suchtreffer zum " +
+            "gewählten Titel. Das bestätigt weder Verfügbarkeit noch Abspielbarkeit.", 70)
         renderSavedSites(into)
         into.addView(Ui.text(activity,
             "Daten und Bilder: TMDB · Verfügbarkeitsdaten: JustWatch. " +
@@ -207,6 +208,9 @@ internal class TitleSourcesPanel(
     private fun renderSavedSites(host: LinearLayout) {
         if (storedSites.isEmpty()) {
             info(host, "Keine Webseiten mit gültiger Adresse gespeichert.", 53)
+            host.addView(Ui.button(activity, "Alle Quellen einrichten", true) {
+                openDirectory(imdbId.orEmpty())
+            }, Ui.lp(dp(270), dp(52)))
             return
         }
         val preferredSection = if (title.kind == "movie") Section.FILME else Section.SERIEN
@@ -228,14 +232,16 @@ internal class TitleSourcesPanel(
         scroll.addView(row)
         host.addView(scroll, Ui.lp(-1, dp(65)))
         val actions = Ui.horizontal(activity)
+        val total = SiteStore(activity).sites().size
         actions.addView(Ui.button(activity,
-            "Alle Webseiten (" + storedSites.size + ")", true) { chooseWebsite() },
+            "Alle Quellen (" + total + ")", true) { openDirectory(imdbId.orEmpty()) },
             Ui.lp(dp(232), dp(49)).apply { rightMargin = dp(10) })
         actions.addView(Ui.button(activity, "Filmtitel kopieren", true) { copyTitle() },
             Ui.lp(dp(215), dp(49)))
         host.addView(actions, Ui.lp(-1, dp(61)))
-        info(host, "Beim Öffnen einer Webseite wird der Filmtitel in die Zwischenablage " +
-            "kopiert. Verwende anschließend deren eigene Suche.", 70)
+        info(host, "Die Schnellwahl startet eine titelbezogene Seitensuche. " +
+            "In »Alle Quellen« kannst du Websites filtern, Favoriten ändern und " +
+            "fehlende Adressen ergänzen.", 75)
     }
 
     private fun chooseWebsite() {
