@@ -28,6 +28,18 @@
                 android:resource="@xml/update_file_paths" />
         </provider>
         <activity
+            android:name=".EpgActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".UnifiedSearchActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".XtreamActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
             android:name=".MacPortalProfilesActivity"
             android:exported="false"
             android:screenOrientation="landscape" />

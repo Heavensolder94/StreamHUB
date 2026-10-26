@@ -81,6 +81,9 @@ class MacPortalActivity : Activity() {
         val actions = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
         heading = Ui.text(this, "Live TV", 19f, Ui.TEXT, true)
         actions.addView(heading, LinearLayout.LayoutParams(0, dp(50), 1f))
+        actions.addView(Ui.button(this, "⌕ Alle Quellen", true) {
+            startActivity(Intent(this, UnifiedSearchActivity::class.java))
+        }, Ui.lp(dp(169), dp(46)).apply { rightMargin = dp(8) })
         actions.addView(Ui.button(this, "☷  Kategorien", true) { categoryDialog() },
             Ui.lp(dp(172), dp(46)).apply { rightMargin = dp(10) })
         actions.addView(Ui.button(this, "↻  Aktualisieren", true) {
@@ -281,6 +284,9 @@ class MacPortalActivity : Activity() {
                 putExtra("direct_stream_title", item.name)
                 putExtra("direct_stream_is_live", item.type == "itv")
                 putExtra("direct_allow_http", store.active()?.source?.allowHttp == true)
+                putExtra("history_id", "mac:" + (store.active()?.id ?: "unknown") +
+                    ":" + item.type + ":" + item.id + ":" + item.episode)
+                putExtra("history_kind", item.type)
             })
             status.text = "Stream an den integrierten Player übergeben."
         }

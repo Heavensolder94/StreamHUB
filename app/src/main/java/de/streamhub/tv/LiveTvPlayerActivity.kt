@@ -16,6 +16,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.ui.PlayerView
 import android.net.Uri
 
@@ -27,6 +28,9 @@ class LiveTvPlayerActivity : Activity() {
     private lateinit var nowPlaying: TextView
     private lateinit var status: TextView
     private val catalog by lazy { LiveTvCatalog(this) }
+    private val watch by lazy { WatchStateStore(this) }
+    private var historyId = ""
+    private var historyKind = "itv"
     private var currentChannelId = ""
     private var directUrl = ""
     private var directTitle = ""
@@ -44,6 +48,9 @@ class LiveTvPlayerActivity : Activity() {
         directTitle = intent.getStringExtra("direct_stream_title").orEmpty()
         directIsLive = intent.getBooleanExtra("direct_stream_is_live", false)
         allowDirectHttp = intent.getBooleanExtra("direct_allow_http", false)
+        historyId = intent.getStringExtra("history_id").orEmpty()
+        historyKind = intent.getStringExtra("history_kind").orEmpty()
+            .ifBlank { if (directIsLive) "itv" else "vod" }
         val root = Ui.vertical(this).apply { setBackgroundColor(Color.BLACK) }
         val header = Ui.horizontal(this).apply {
             gravity = Gravity.CENTER_VERTICAL
@@ -58,6 +65,9 @@ class LiveTvPlayerActivity : Activity() {
             header.addView(Ui.button(this, "Sender  ›", true) { switchChannel(1) },
                 Ui.lp(dp(135), dp(49)).apply { rightMargin = dp(8) })
         }
+        header.addView(Ui.button(this, "↻ Neu laden", true) {
+            player?.apply { prepare(); playWhenReady = true }
+        }, Ui.lp(dp(139), dp(49)).apply { rightMargin = dp(8) })
         header.addView(Ui.button(this, "✕ Zurück", true) { finish() },
             Ui.lp(dp(135), dp(49)))
         root.addView(header, Ui.lp(-1, dp(70)))
@@ -68,6 +78,7 @@ class LiveTvPlayerActivity : Activity() {
             useController = true
             controllerAutoShow = true
             controllerShowTimeoutMs = 6500
+            setShowSubtitleButton(true)
         }
         container.addView(view, FrameLayout.LayoutParams(-1, -1))
         root.addView(container, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -86,7 +97,10 @@ class LiveTvPlayerActivity : Activity() {
             status.text = "Keine Sender eingerichtet."
             return
         }
-        val instance = ExoPlayer.Builder(this).build()
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(15_000, 60_000, 2_500, 5_000)
+            .build()
+        val instance = ExoPlayer.Builder(this).setLoadControl(loadControl).build()
         player = instance
         view.player = instance
         instance.addListener(object : Player.Listener {
@@ -124,6 +138,8 @@ class LiveTvPlayerActivity : Activity() {
             return
         }
         currentChannelId = channel.id
+        historyId = "m3u:" + channel.id
+        historyKind = "itv"
         nowPlaying.text = "●  " + channel.name
         status.text = "Sender wird geladen …"
         playUri(channel.url)
@@ -138,6 +154,10 @@ class LiveTvPlayerActivity : Activity() {
         }.build()
         player?.apply {
             setMediaItem(item)
+            if (!directIsLive && directUrl.isNotBlank() && historyId.isNotBlank()) {
+                val progress = watch.get(historyId)?.positionMs ?: 0L
+                if (progress > 10_000L) seekTo(progress)
+            }
             prepare()
             playWhenReady = true
         }
@@ -151,6 +171,16 @@ class LiveTvPlayerActivity : Activity() {
     }
 
     override fun onStop() {
+        val instance = player
+        if (historyId.isNotBlank() && instance != null) {
+            watch.record(historyId,
+                if (directUrl.isNotBlank()) directTitle.ifBlank { "IPTV" }
+                    else channels.firstOrNull { it.id == currentChannelId }?.name.orEmpty(),
+                historyKind,
+                if (directUrl.isNotBlank() && !directIsLive) instance.currentPosition else 0L,
+                if (directUrl.isNotBlank() && !directIsLive)
+                    instance.duration.coerceAtLeast(0L) else 0L)
+        }
         view.player = null
         player?.release()
         player = null

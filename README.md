@@ -1,3 +1,15 @@
+# StreamHUB V2.7 — Neue Quellenübersicht, EPG, Xtream, Weiterschauen
+
+StreamHUB bietet jetzt eine **gemeinsame native IPTV-Suche** für importierte M3U-Sender, den optionalen Xtream-Zugang und aktivierte MAC-Portale. Inaktive MAC-Profile werden nur mit ausdrücklichem Such-Opt-in (bis zu 5 Profile) abgefragt. Gleichnamige Titel erscheinen zusammen, aber der Nutzer wählt die tatsächliche Quelle. Große Portale werden aus Performancegründen nur ausschnittsweise durchsucht; **dies ist keine vollständige Web-/TMDB-Suche über alle externen Webseiten**.
+
+Zusätzliche Funktionen: **XMLTV-EPG** (HTTPS-Quelle, Zuordnung via `tvg-id` zu M3U-Sendern); native **Merkliste/Weiterschauen** für IPTV-Titel ohne Speichern flüchtiger Streaminglinks; Player mit Untertitel-Schaltfläche, Buffering-Verbesserungen und Neuladen; **Xtream Codes** (autorisierter Account mit verschlüsselten Login-Daten, Live-TV/VOD/Serien); optionaler MAC-Profil-Handshake-Test.
+
+**Update-System:** Das auf `main` vorhandene signierte GitHub-Releases-Update-System bleibt unverändert. Für eine manuelle Test-APK GitHub Actions → Build Android TV APK → Artifact `StreamHub-Premium-V2.7-debug-apk` verwenden. Debug-APKs sind **nicht** automatisch kompatibel zu einer anders signierten Release-Installation; die App-Signatur muss für ein Upgrade übereinstimmen. Kein Anbieterzugang wird mitgeliefert.
+
+**Aktuelle Grenzen:** EPG nur für importierte M3U-Listen; Xtream aktuell ein Profil; Suche ist auf Teilkataloge begrenzt; keine automatische TMDB-/Webseiten-Deduplizierung; keine Anbieter-übergreifende DRM-, Timeshift- oder Catch-up-Garantie. Echte Portal-Wiedergabe muss mit vom Nutzer freigeschalteten Zugängen getestet werden. HTTPS verwenden; HTTP nur nach bewusstem Opt-in.
+
+---
+
 # StreamHUB Premium V2.6 — Mehrere MAC-IPTV-Profile
 
 In **LIVE TV → MAC IPTV → ⚙ Profile** können mehrere eigene, autorisierte MAG-/Stalker-Portale verwaltet werden.

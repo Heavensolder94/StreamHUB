@@ -92,6 +92,12 @@ class MainActivity : Activity() {
         }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(13) })
         sidebar.addView(Ui.button(this, "📺  LIVE TV", true) {
             startActivity(Intent(this, LiveTvActivity::class.java))
+        }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(8) })
+        sidebar.addView(Ui.button(this, "▤  XTREAM IPTV", true) {
+            startActivity(Intent(this, XtreamActivity::class.java))
+        }, Ui.lp(-1, dp(47)).apply { bottomMargin = dp(7) })
+        sidebar.addView(Ui.button(this, "⌕  ALLE QUELLEN", true) {
+            startActivity(Intent(this, UnifiedSearchActivity::class.java))
         }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(13) })
         sidebar.addView(Ui.text(this, "ENTDECKEN", 10f, Ui.MUTED, true),
             Ui.lp(-1, dp(31)))
