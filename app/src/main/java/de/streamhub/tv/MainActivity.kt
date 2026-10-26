@@ -10,6 +10,11 @@ import java.text.DateFormat
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
+import android.widget.TextView
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -55,166 +60,286 @@ class MainActivity : Activity() {
         showTab(tab)
     }
 
+
     private fun showTab(next: Tab) {
         tab = next
-        val root = Ui.horizontal(this).apply {
-            setBackgroundColor(Ui.BG)
-            setPadding(dp(14), dp(15), dp(14), dp(15))
-        }
+        val root = Ui.horizontal(this).apply { setBackgroundColor(Ui.BG) }
         setContentView(root)
 
         val sidebar = Ui.vertical(this).apply {
-            setPadding(dp(10), dp(8), dp(14), dp(8))
-            background = Ui.bg(0xFF0E1825.toInt(), 15f, context = this@MainActivity)
+            setPadding(dp(19), dp(23), dp(16), dp(19))
+            background = Ui.gradient(this@MainActivity, intArrayOf(0xFF10192A.toInt(), 0xFF0A101B.toInt()), 0f)
         }
-        root.addView(sidebar, Ui.lp(dp(220), ViewGroup.LayoutParams.MATCH_PARENT))
+        root.addView(sidebar, Ui.lp(dp(198), -1))
 
-        val brand = Ui.text(this, "▶  StreamHub", 26f, Ui.BLUE, true)
-        sidebar.addView(brand, Ui.lp(-1, dp(70)))
-        sidebar.addView(Ui.text(this, "DEINE TV-ZENTRALE", 11f, Ui.MUTED, true), Ui.lp(-1, dp(32)))
+        val branding = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        val logo = Ui.text(this, "▶", 31f, Ui.BLUE, true)
+        branding.addView(logo, Ui.lp(dp(38), dp(48)))
+        val names = Ui.vertical(this)
+        names.addView(Ui.text(this, "STREAMHUB", 22f, Ui.TEXT, true))
+        names.addView(Ui.text(this, "PREMIUM EDITION", 10f, Ui.BLUE, true))
+        branding.addView(names, Ui.lp(-1, dp(51)))
+        sidebar.addView(branding, Ui.lp(-1, dp(82)))
+        sidebar.addView(Ui.text(this, "ENTDECKEN", 10f, Ui.MUTED, true),
+            Ui.lp(-1, dp(31)))
 
-        val navs = listOf(Tab.HOME, Tab.SEARCH, Tab.ANIME, Tab.FILME, Tab.SERIEN, Tab.MIX, Tab.FAVORITES, Tab.HISTORY, Tab.MANAGE)
-        navs.forEach { choice ->
-            val label = (if (choice == tab) "●  " else "    ") + choice.label
-            val button = Ui.button(this, label) { showTab(choice) }
-            val params = Ui.lp(-1, dp(48)).apply { bottomMargin = dp(7) }
-            sidebar.addView(button, params)
+        val navs = listOf(
+            Tab.HOME to "⌂", Tab.SEARCH to "⌕", Tab.ANIME to "✦",
+            Tab.FILME to "▣", Tab.SERIEN to "▤", Tab.MIX to "◈",
+            Tab.FAVORITES to "♥", Tab.HISTORY to "↺", Tab.MANAGE to "⚙"
+        )
+        val firstNav = arrayOfNulls<View>(1)
+        navs.forEach { (choice, symbol) ->
+            val selected = choice == tab
+            val entry = Ui.text(this, "$symbol   ${choice.label}", 15f,
+                if (selected) Ui.TEXT else Ui.SOFT, selected)
+            entry.isFocusable = true
+            entry.isClickable = true
+            entry.setPadding(dp(14), 0, dp(5), 0)
+            entry.background = Ui.bg(if (selected) 0xFF1D3859.toInt() else Color.TRANSPARENT,
+                11f, if (selected) 0xFF366E9C.toInt() else null, this)
+            entry.setOnFocusChangeListener { view, focused ->
+                view.background = Ui.bg(
+                    if (focused) Ui.BLUE else if (selected) 0xFF1D3859.toInt() else Color.TRANSPARENT,
+                    11f, if (focused) Color.WHITE else if (selected) 0xFF366E9C.toInt() else null, this)
+                entry.setTextColor(if (focused) Ui.BG else if (selected) Ui.TEXT else Ui.SOFT)
+                view.animate().scaleX(if (focused) 1.045f else 1f)
+                    .scaleY(if (focused) 1.045f else 1f).setDuration(145).start()
+            }
+            entry.setOnClickListener { showTab(choice) }
+            sidebar.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
+            if (choice == tab) firstNav[0] = entry
         }
-        val spacer = View(this)
-        sidebar.addView(spacer, LinearLayout.LayoutParams(1, 0, 1f))
-        sidebar.addView(Ui.text(this, "V1.4  •  Unabhängig von Kodi", 12f, Ui.MUTED), Ui.lp(-1, dp(36)))
+        sidebar.addView(View(this), LinearLayout.LayoutParams(1, 0, 1f))
+        sidebar.addView(Ui.text(this, "STREAMHUB  1.6", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
-        val column = Ui.vertical(this).apply { setPadding(dp(25), dp(12), dp(8), 0) }
+        val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }
         root.addView(column, LinearLayout.LayoutParams(0, -1, 1f))
-        val headingBar = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        val heading = Ui.vertical(this)
-        heading.addView(Ui.text(this, tab.heading, 29f, Ui.TEXT, true))
-        heading.addView(Ui.text(this, subtitle(), 14f, Ui.MUTED), Ui.lp(-1, dp(30)))
-        headingBar.addView(heading, LinearLayout.LayoutParams(0, -2, 1f))
-        val add = Ui.button(this, "+ Webseite hinzufügen", compact = true) { editSite() }
-        headingBar.addView(add, Ui.lp(-2, dp(45)))
-        column.addView(headingBar, Ui.lp(-1, dp(88)))
+        val topbar = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        val headings = Ui.vertical(this)
+        headings.addView(Ui.text(this, if (tab == Tab.HOME) "Willkommen zurück" else tab.heading,
+            25f, Ui.TEXT, true))
+        headings.addView(Ui.text(this, subtitle(), 12f, Ui.MUTED), Ui.lp(-1, dp(26)))
+        topbar.addView(headings, LinearLayout.LayoutParams(0, -2, 1f))
+        topbar.addView(Ui.button(this, "＋  Neue Seite", compact = true) { editSite() }, Ui.lp(-2, dp(43)))
+        column.addView(topbar, Ui.lp(-1, dp(82)))
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
             isFocusable = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            isVerticalScrollBarEnabled = false
         }
         column.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-        val contents = Ui.vertical(this).apply { setPadding(dp(2), dp(8), dp(14), dp(30)) }
-        scroll.addView(contents)
-
-        when (tab) {
-            Tab.HOME -> renderHome(contents)
-            Tab.SEARCH -> renderSearch(contents)
-            Tab.ANIME -> renderGrid(contents, store.sites().filter { it.section == Section.ANIME })
-            Tab.FILME -> renderGrid(contents, store.sites().filter { it.section == Section.FILME })
-            Tab.SERIEN -> renderGrid(contents, store.sites().filter { it.section == Section.SERIEN })
-            Tab.MIX -> renderGrid(contents, store.sites().filter { it.section == Section.MISCHPORTALE })
-            Tab.FAVORITES -> renderGrid(contents, store.sites().filter { it.favorite })
-            Tab.HISTORY -> renderHistory(contents)
-            Tab.MANAGE -> renderManage(contents)
+        val content = Ui.vertical(this).apply { setPadding(dp(3), dp(8), dp(12), dp(38)) }
+        scroll.addView(content)
+        when(tab) {
+            Tab.HOME -> renderHome(content)
+            Tab.SEARCH -> renderSearch(content)
+            Tab.ANIME -> renderGrid(content, store.sites().filter { it.section == Section.ANIME })
+            Tab.FILME -> renderGrid(content, store.sites().filter { it.section == Section.FILME })
+            Tab.SERIEN -> renderGrid(content, store.sites().filter { it.section == Section.SERIEN })
+            Tab.MIX -> renderGrid(content, store.sites().filter { it.section == Section.MISCHPORTALE })
+            Tab.FAVORITES -> renderGrid(content, store.sites().filter { it.favorite })
+            Tab.HISTORY -> renderHistory(content)
+            Tab.MANAGE -> renderManage(content)
         }
-        // Enable D-pad navigation immediately.
-        sidebar.getChildAt(2)?.requestFocus()
+        firstNav[0]?.requestFocus()
     }
 
-    private fun subtitle(): String = when (tab) {
-        Tab.HOME -> "Alle deine Streaming-Webseiten an einem Ort"
-        Tab.SEARCH -> "Auch Portale ohne bestätigte Adresse im Katalog finden"
-        Tab.MANAGE -> "Seiten verwalten, Verfügbarkeit prüfen und Listen importieren"
-        Tab.HISTORY -> "Lokal auf deinem Gerät gespeichert"
-        else -> "Mit deiner Fernbedienung auswählen und öffnen"
+    private fun subtitle(): String = when(tab) {
+        Tab.HOME -> "Alles an einem Ort. Für deinen Fernseher."
+        Tab.SEARCH -> "Finde deine Lieblingsportale und gespeicherte Webseiten."
+        Tab.MANAGE -> "Webseiten verwalten, prüfen und Listen importieren."
+        Tab.HISTORY -> "Zuletzt geöffnete Seiten auf diesem Gerät."
+        else -> "Entdecken, auswählen, direkt öffnen."
     }
 
     private fun renderHome(into: LinearLayout) {
-        val feature = Ui.vertical(this).apply {
-            background = Ui.bg(0xFF14314F.toInt(), 18f, context = this@MainActivity)
-            setPadding(dp(24), dp(18), dp(24), dp(18))
+        val all = store.sites()
+        val hero = FrameLayout(this).apply {
+            background = Ui.bg(0xFF111F32.toInt(), 18f, context = this@MainActivity)
+            clipToOutline = true
         }
-        feature.addView(Ui.text(this, "Willkommen bei StreamHub", 25f, Ui.TEXT, true))
-        feature.addView(Ui.text(this, "Anime • Filme • Serien • Mischportale — alles über deine Fernbedienung", 16f, Ui.MUTED), Ui.lp(-1, dp(34)))
-        val openFavorites = Ui.button(this, "★  Favoriten ansehen", true) { showTab(Tab.FAVORITES) }
-        feature.addView(openFavorites, Ui.lp(dp(220), dp(42)))
-        into.addView(feature, Ui.lp(-1, dp(144)).apply { bottomMargin = dp(22) })
-        val allSites = store.sites()
-        into.addView(Ui.text(this, "${allSites.size} Webseiten im Katalog • Nicht jede ist erreichbar oder lizenziert.", 14f, Ui.MUTED), Ui.lp(-1, dp(37)))
-        store.sites().groupBy { it.section }.forEach { (section, sites) ->
-            addHeading(into, "${section.label} (${sites.size})")
-            renderGrid(into, sites, maxItems = 6)
-            val category = when (section) {
-                Section.ANIME -> Tab.ANIME
-                Section.FILME -> Tab.FILME
-                Section.SERIEN -> Tab.SERIEN
-                Section.MISCHPORTALE -> Tab.MIX
+        hero.addView(CinematicArtwork(this, "StreamHub Premium", "Home", hero = true),
+            FrameLayout.LayoutParams(-1, -1))
+        val veil = View(this).apply {
+            background = Ui.gradient(this@MainActivity,
+                intArrayOf(0xF009101A.toInt(), 0xDD101A2A.toInt(), 0x15132643),
+                18f)
+        }
+        hero.addView(veil, FrameLayout.LayoutParams(-1, -1))
+        val heroContent = Ui.vertical(this).apply {
+            setPadding(dp(30), dp(19), dp(19), dp(18))
+        }
+        heroContent.addView(Ui.text(this, "●   STREAMHUB ORIGINAL EXPERIENCE", 11f, Ui.BLUE, true),
+            Ui.lp(-1, dp(31)))
+        val slogan = Ui.text(this, "DEINE WELT.\nDEIN STREAM.", 35f, Ui.TEXT, true)
+        slogan.setLineSpacing(dp(1).toFloat(), 1.0f)
+        heroContent.addView(slogan, Ui.lp(-1, dp(99)))
+        heroContent.addView(Ui.text(this,
+            "Anime, Filme und Serien – alles in deiner persönlichen TV-Zentrale.",
+            14f, Ui.SOFT), Ui.lp(-1, dp(42)))
+        val heroActions = Ui.horizontal(this)
+        heroActions.addView(Ui.button(this, "▶  ANIME ENTDECKEN", true) { showTab(Tab.ANIME) },
+            Ui.lp(dp(194), dp(41)).apply { rightMargin = dp(9) })
+        heroActions.addView(Ui.button(this, "♥  FAVORITEN", true) { showTab(Tab.FAVORITES) },
+            Ui.lp(dp(150), dp(41)))
+        heroContent.addView(heroActions, Ui.lp(-1, dp(47)))
+        hero.addView(heroContent, FrameLayout.LayoutParams(-1, -1))
+        into.addView(hero, Ui.lp(-1, dp(250)).apply { bottomMargin = dp(24) })
+
+        val visiting = store.history().take(8)
+        if (visiting.isNotEmpty()) {
+            val recentSites = visiting.mapNotNull { visit ->
+                all.firstOrNull { it.url == visit.url }
+            }.distinctBy { it.id }
+            if (recentSites.isNotEmpty()) {
+                renderShelf(into, "Zuletzt besucht", recentSites, Tab.HISTORY)
             }
-            into.addView(Ui.button(this, "Alle ${section.label}-Seiten ansehen", true) { showTab(category) },
-                Ui.lp(dp(290), dp(43)).apply { bottomMargin = dp(17) })
         }
-        val recent = store.history().take(3)
-        if (recent.isNotEmpty()) {
-            addHeading(into, "Zuletzt besucht")
-            recent.forEach { visit ->
-                val row = Ui.button(this, "↻   ${visit.name}", true) { launchBrowser(visit.name, visit.url) }
-                into.addView(row, Ui.lp(-1, dp(48)).apply { bottomMargin = dp(7) })
-            }
+        val liked = all.filter { it.favorite }
+        if (liked.isNotEmpty()) renderShelf(into, "Deine Favoriten", liked, Tab.FAVORITES)
+        renderShelf(into, "Anime entdecken", all.filter { it.section == Section.ANIME }, Tab.ANIME)
+        renderShelf(into, "Filmwelten", all.filter { it.section == Section.FILME }, Tab.FILME)
+        renderShelf(into, "Serien-Highlights", all.filter { it.section == Section.SERIEN }, Tab.SERIEN)
+        renderShelf(into, "Alles auf einer Seite", all.filter { it.section == Section.MISCHPORTALE }, Tab.MIX)
+        into.addView(Ui.text(this,
+            "${all.size} Webseiten im Katalog   •   Inhalte und Videoplayer hängen vom jeweiligen Anbieter ab.",
+            12f, Ui.MUTED), Ui.lp(-1, dp(42)))
+    }
+
+    private fun renderShelf(into: LinearLayout, name: String, sites: List<Site>, category: Tab) {
+        if (sites.isEmpty()) return
+        val heading = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        heading.addView(Ui.text(this, name, 22f, Ui.TEXT, true),
+            LinearLayout.LayoutParams(0, dp(49), 1f))
+        heading.addView(Ui.button(this, "ALLE ANSEHEN   ›", compact = true) { showTab(category) },
+            Ui.lp(dp(146), dp(36)))
+        into.addView(heading, Ui.lp(-1, dp(56)))
+
+        val strip = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            isFocusable = false
+            clipToPadding = false
+            overScrollMode = View.OVER_SCROLL_NEVER
         }
+        val line = Ui.horizontal(this).apply {
+            setPadding(dp(4), dp(8), dp(6), dp(12))
+            clipChildren = false
+            clipToPadding = false
+        }
+        sites.forEach { site ->
+            val tile = createTile(site)
+            line.addView(tile, Ui.lp(dp(173), dp(237)).apply { rightMargin = dp(17) })
+        }
+        strip.addView(line)
+        into.addView(strip, Ui.lp(-1, dp(268)).apply { bottomMargin = dp(12) })
     }
 
     private fun addHeading(into: LinearLayout, title: String) {
-        into.addView(Ui.text(this, title, 21f, Ui.TEXT, true), Ui.lp(-1, dp(45)))
+        into.addView(Ui.text(this, title, 23f, Ui.TEXT, true),
+            Ui.lp(-1, dp(54)).apply { topMargin = dp(7) })
     }
 
     private fun renderGrid(into: LinearLayout, sites: List<Site>, maxItems: Int = Int.MAX_VALUE) {
         val shown = sites.take(maxItems)
         if (shown.isEmpty()) {
-            into.addView(Ui.text(this, "Noch keine Seiten vorhanden. Über + kannst du welche hinzufügen.", 17f, Ui.MUTED), Ui.lp(-1, dp(80)))
+            into.addView(Ui.text(this, "Hier ist noch nichts gespeichert. Oben rechts kannst du eine Seite hinzufügen.",
+                16f, Ui.MUTED), Ui.lp(-1, dp(85)))
             return
         }
+        val heading = Ui.text(this, "${shown.size} SEITEN  •  AUSWÄHLEN UND ÖFFNEN", 11f, Ui.MUTED, true)
+        into.addView(heading, Ui.lp(-1, dp(40)))
         shown.chunked(3).forEach { chunk ->
-            val row = Ui.horizontal(this)
+            val line = Ui.horizontal(this).apply {
+                clipChildren = false
+                clipToPadding = false
+            }
             chunk.forEach { site ->
-                val tile = createTile(site)
-                row.addView(tile, LinearLayout.LayoutParams(0, dp(200), 1f).apply {
-                    rightMargin = dp(14)
-                    bottomMargin = dp(16)
+                line.addView(createTile(site), LinearLayout.LayoutParams(0, dp(248), 1f).apply {
+                    rightMargin = dp(17)
+                    bottomMargin = dp(15)
                 })
             }
             repeat(3 - chunk.size) {
-                row.addView(View(this), LinearLayout.LayoutParams(0, dp(200), 1f).apply { rightMargin = dp(14) })
+                line.addView(View(this), LinearLayout.LayoutParams(0, dp(248), 1f).apply { rightMargin = dp(17) })
             }
-            into.addView(row, Ui.lp(-1, dp(218)))
+            into.addView(line, Ui.lp(-1, dp(267)))
         }
     }
 
     private fun createTile(site: Site): View {
-        val color = when(site.section) {
-            Section.ANIME -> 0xFF173656.toInt()
-            Section.FILME -> 0xFF29244E.toInt()
-            Section.SERIEN -> 0xFF163E42.toInt()
-            Section.MISCHPORTALE -> 0xFF3D2E38.toInt()
+        val card = FrameLayout(this).apply {
+            isFocusable = true
+            isClickable = true
+            clipToOutline = true
+            background = Ui.bg(Ui.PANEL, 15f, context = this@MainActivity)
         }
-        val card = Ui.vertical(this).apply {
-            background = Ui.bg(color, 15f, context = this@MainActivity)
-            setPadding(dp(15), dp(10), dp(15), dp(12))
+        card.addView(CinematicArtwork(this, site.name, site.section.label),
+            FrameLayout.LayoutParams(-1,-1))
+        val shade = View(this).apply {
+            background = Ui.gradient(this@MainActivity,
+                intArrayOf(0x08081017, 0x88090C14.toInt(), 0xF9090B10.toInt()),
+                15f, GradientDrawable.Orientation.TOP_BOTTOM)
         }
-        card.addView(Ui.text(this, site.section.label.uppercase(), 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
-        card.addView(Ui.text(this, site.name, 22f, Ui.TEXT, true), Ui.lp(-1, dp(40)))
-        val domain = if (site.url.isBlank()) "Adresse ergänzen" else Uri.parse(site.url).host ?: site.url
-        card.addView(Ui.text(this, domain, 12f, Ui.MUTED), Ui.lp(-1, dp(21)))
-        card.addView(Ui.text(this, site.sourceKind.label, 11f, Ui.MUTED), Ui.lp(-1, dp(19)))
-        card.addView(Ui.text(this, "● ${statusOf(site)}", 11f, statusColor(site)), Ui.lp(-1, dp(20)))
-        val controls = Ui.horizontal(this)
-        val open = Ui.button(this, if (site.url.isBlank()) "✎ Adresse" else "▶ Öffnen", true) {
-            if (site.url.isBlank()) editSite(site) else launchBrowser(site.name, site.url)
-        }
-        controls.addView(open, LinearLayout.LayoutParams(0, dp(42), 1f).apply { rightMargin = dp(8) })
-        val star = Ui.button(this, if (site.favorite) "★" else "☆", true) {
+        card.addView(shade, FrameLayout.LayoutParams(-1,-1))
+
+        val kicker = Ui.text(this, site.section.label.uppercase(), 10f, Ui.TEXT, true)
+        kicker.setPadding(dp(11), 0, dp(11), 0)
+        kicker.background = Ui.bg(0xB80D1729.toInt(), 8f, context = this)
+        card.addView(kicker, FrameLayout.LayoutParams(-2, dp(28), Gravity.TOP or Gravity.LEFT).apply {
+            leftMargin = dp(12); topMargin = dp(12)
+        })
+
+        val favorite = Ui.text(this, if (site.favorite) "♥" else "♡", 23f,
+            if (site.favorite) Ui.BLUE else Ui.TEXT, true)
+        favorite.gravity = Gravity.CENTER
+        favorite.isFocusable = true
+        favorite.isClickable = true
+        favorite.background = Ui.bg(0xAB101827.toInt(), 12f, context = this)
+        favorite.setOnClickListener {
             store.toggleFavorite(site.id)
             showTab(tab)
         }
-        controls.addView(star, Ui.lp(dp(51), dp(42)))
-        card.addView(controls, Ui.lp(-1, dp(42)))
+        favorite.setOnFocusChangeListener { view, focus ->
+            view.background = Ui.bg(if (focus) Ui.BLUE else 0xAB101827.toInt(), 12f, context = this)
+            favorite.setTextColor(if (focus) Ui.BG else if (site.favorite) Ui.BLUE else Ui.TEXT)
+        }
+        card.addView(favorite, FrameLayout.LayoutParams(dp(37),dp(35),
+            Gravity.TOP or Gravity.RIGHT).apply { rightMargin = dp(11); topMargin = dp(9) })
+
+        val details = Ui.vertical(this).apply {
+            setPadding(dp(13), dp(8), dp(13), dp(14))
+        }
+        val title = Ui.text(this, site.name, 20f, Ui.TEXT, true)
+        title.maxLines = 2
+        title.ellipsize = android.text.TextUtils.TruncateAt.END
+        details.addView(title, Ui.lp(-1, dp(53)))
+        val domain = if (site.url.isBlank()) "Adresse ergänzen" else Uri.parse(site.url).host ?: site.url
+        val host = Ui.text(this, domain, 12f, Ui.SOFT)
+        host.maxLines = 1
+        host.ellipsize = android.text.TextUtils.TruncateAt.END
+        details.addView(host, Ui.lp(-1, dp(22)))
+        details.addView(Ui.text(this,
+            if (site.url.isBlank()) "＋  ADRESSE HINZUFÜGEN" else "▶  JETZT ÖFFNEN",
+            11f, if (site.url.isBlank()) 0xFFFFCC91.toInt() else Ui.BLUE, true),
+            Ui.lp(-1, dp(24)))
+        card.addView(details, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
+
+        card.foreground = Ui.bg(Color.TRANSPARENT, 15f, Color.TRANSPARENT, this)
+        card.setOnFocusChangeListener { view, focused ->
+            card.foreground = Ui.bg(Color.TRANSPARENT, 15f,
+                if (focused) Ui.BLUE else Color.TRANSPARENT, this)
+            view.animate().scaleX(if (focused) 1.06f else 1f)
+                .scaleY(if (focused) 1.06f else 1f).setDuration(160).start()
+            view.elevation = if (focused) dp(18).toFloat() else 0f
+        }
+        card.setOnClickListener {
+            if (site.url.isBlank()) editSite(site) else launchBrowser(site.name, site.url)
+        }
         return card
     }
 
