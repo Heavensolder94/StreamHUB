@@ -18,6 +18,10 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/streamhub_network_security">
         <activity
+            android:name=".MacPortalProfilesActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
             android:name=".MacPortalActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
