@@ -60,7 +60,7 @@ internal class TmdbClient(context: Context) {
     fun close() { workers.shutdownNow() }
     fun request(path: String, params: Map<String, String> = emptyMap(),
                 done: (Result<JSONObject>) -> Unit) {
-        if (!path.matches(Regex("^/(trending/(movie|tv)/week|movie/popular|tv/popular|discover/tv|search/multi|(movie|tv)/[1-9][0-9]{0,9})$"))) {
+        if (!path.matches(Regex("^/(trending/(movie|tv)/week|movie/popular|tv/popular|discover/tv|search/multi|(movie|tv)/[1-9][0-9]{0,9}(/watch/providers)?)$"))) {
             done(Result.failure(IllegalArgumentException("Ungültiger TMDB-Pfad.")))
             return
         }
@@ -85,7 +85,7 @@ internal class TmdbClient(context: Context) {
                     connection.readTimeout = 9000
                     connection.instanceFollowRedirects = false
                     connection.setRequestProperty("Accept", "application/json")
-                    connection.setRequestProperty("User-Agent", "StreamHubTV/2.0")
+                    connection.setRequestProperty("User-Agent", "StreamHubTV/2.1")
                     if (!(token.length == 32 && token.matches(Regex("^[0-9a-fA-F]{32}$")))) {
                         connection.setRequestProperty("Authorization", "Bearer " + token)
                     }
