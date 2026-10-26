@@ -1,3 +1,18 @@
+# StreamHub Premium V1.8 — DeVideoSRC Player (Android TV)
+
+- **Neuer Menüpunkt „DeVideoSRC“** und Schnellzugriff auf der Startseite.
+- Film per **IMDb-ID** (z. B. `tt1234567`) oder numerischer **DeVideoSRC-ID** im eingebetteten Android-WebView-Player öffnen.
+- **Serien** über `/serial/{id}` mit Staffel-/Folgenauswahl des Drittanbieters; **direkter Episodenstart** über `/custom/serial/{id}/{staffel}/{folge}`.
+- Optionaler **Custom-Filmplayer** in StreamHub-Akzentfarbe, standardmäßig ohne Autoplay. Eingaben werden geprüft.
+- **Zuletzt gestartet:** bis zu zehn Einträge nur lokal gespeichert, mit Titelangabe, Wiederöffnen und Löschen. Dies ist **keine** automatische Wiedergabepositions-Erkennung.
+- **DeVideoSRC im Webseitenkatalog:** auf bestehenden Installationen ergänzt, ohne individuelle Favoriten, Links oder Änderungen zurückzusetzen.
+- **Sidebar scrollbar**, damit der neue Menüpunkt auch auf kleineren Fernsehern fokussierbar ist.
+- Die DEVIDEOSRC-Embed-API bindet Videohoster eines Drittanbieters ein; Streaming-Verfügbarkeit, Lizenzlage, Vollbild, Fernbedienung und Kompatibilität sind **nicht garantiert**. Kein DRM-Bypass, kein Stream-Scraping, keine Download-Funktion.
+- `https://devideosrc.co/docs` beschreibt die eingebundenen Player-Routen.
+- **Build:** Unter GitHub **Actions → Build Android TV APK** den erfolgreichen Lauf öffnen und unter **Artifacts** `StreamHub-Premium-V1.8-debug-apk` herunterladen. Enthalten ist `app-debug.apk`. Für private Gerätetests; die Android-TV-Box wurde noch nicht real getestet.
+
+---
+
 # StreamHub Premium V1.7 — Android TV
 
 Eigenständige Android-TV-App für Webseiten, Favoriten und öffentliche Cover-Vorschauen. Kodi bleibt separat. Stand: Android-Build wird über GitHub Actions ausgeführt; Laufzeit- und Webseiten-Kompatibilität muss auf der Xiaomi-TV-Box geprüft werden.
