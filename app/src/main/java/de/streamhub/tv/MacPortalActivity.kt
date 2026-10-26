@@ -17,7 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 import java.util.concurrent.Executors
 
-/** MAC IPTV section: live TV, movies and series via one authorized Stalker portal. */
+/** MAC IPTV catalog driven by the currently enabled user profile. */
 class MacPortalActivity : Activity() {
     private val store by lazy { MacPortalStore(this) }
     private val workers = Executors.newSingleThreadExecutor()
@@ -38,7 +38,7 @@ class MacPortalActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
         createView()
-        if (store.load() != null) connect() else renderEmpty()
+        if (store.active() != null) connect() else renderEmpty()
     }
 
     private fun createView() {
@@ -51,15 +51,17 @@ class MacPortalActivity : Activity() {
         val bar = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
         bar.addView(Ui.text(this, "📡  STREAMHUB  ·  MAC IPTV", 23f, Ui.TEXT, true),
             LinearLayout.LayoutParams(0, dp(53), 1f))
-        bar.addView(Ui.button(this, "⚙ Portal", true) { showPortalDialog() },
+        bar.addView(Ui.button(this, "⚙ Profile", true) { showPortalDialog() },
             Ui.lp(dp(144), dp(48)).apply { rightMargin = dp(9) })
         bar.addView(Ui.button(this, "✕ Zurück", true) { finish() },
             Ui.lp(dp(138), dp(48)))
         root.addView(bar, Ui.lp(-1, dp(61)))
 
-        val source = store.load()
-        val sourceText = if (source == null) "Kein MAC-Portal verbunden."
-            else "Portal: " + source.url.take(75) + "  ·  MAC: •••" + source.mac.takeLast(5)
+        val active = store.active()
+        val sourceText = if (active == null) store.profiles().size.toString() +
+                " gespeicherte Portale  ·  Keines aktiv"
+            else "Aktiv: " + active.name + "  ·  " + active.source.url.take(57) +
+                "  ·  MAC: •••" + active.source.mac.takeLast(5)
         root.addView(Ui.text(this, sourceText, 12f, Ui.MUTED), Ui.lp(-1, dp(35)))
 
         val tabs = Ui.horizontal(this)
@@ -112,82 +114,43 @@ class MacPortalActivity : Activity() {
     private var canNext = false
 
     private fun renderEmpty() {
+        api = null
         content.removeAllViews()
+        val count = store.profiles().size
         content.addView(Ui.text(this,
-            "Noch kein MAC-Portal eingerichtet.\n\n" +
-                "Du benötigst die Portal-Adresse und die vom IPTV-Anbieter " +
-                "freigeschaltete MAC-Adresse. Tippe auf ⚙ Portal.\n\n" +
-                "StreamHUB liefert keine IPTV-Abos oder Zugangsdaten.",
-            16f, Ui.SOFT), Ui.lp(-1, dp(195)))
-        status.text = "Portal hinzufügen, um Live TV, Filme und Serien zu laden."
+            if (count == 0)
+                "Noch keine eigenen MAC-IPTV-Portale gespeichert.\n\n" +
+                    "Tippe auf ⚙ Profile, um deinen ersten Anbieterzugang einzurichten."
+            else
+                count.toString() + " Profile gespeichert. Aktuell ist keines aktiviert.\n\n" +
+                    "Wähle unter ⚙ Profile einen Zugang und drücke Aktivieren.",
+            16f, Ui.SOFT), Ui.lp(-1, dp(186)))
+        status.text = if (count == 0) "Erstes Profil hinzufügen."
+            else "Alle Portalprofile deaktiviert. Kein Portal wird abgefragt."
         pagination.text = ""
         canNext = false
     }
 
     private fun showPortalDialog() {
-        val existing = store.load()
-        val layout = Ui.vertical(this).apply {
-            setPadding(dp(17), dp(12), dp(17), dp(9))
+        if (busy) {
+            Toast.makeText(this, "Bitte laufende Portalabfrage abschließen.",
+                Toast.LENGTH_SHORT).show()
+            return
         }
-        layout.addView(Ui.text(this, "Eigener, vom Anbieter autorisierter MAG-/Stalker-Zugang.",
-            13f, Ui.SOFT), Ui.lp(-1, dp(46)))
-        val address = EditText(this).apply {
-            hint = "https://portal.beispiel.de/c/"
-            setSingleLine(true)
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
-            setText(existing?.url.orEmpty())
-        }
-        val mac = EditText(this).apply {
-            hint = "00:1A:79:12:34:56"
-            setSingleLine(true)
-            setText(existing?.mac.orEmpty())
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-        }
-        val http = CheckBox(this).apply {
-            text = "Unsicheres HTTP ausdrücklich erlauben"
-            isChecked = existing?.allowHttp == true
-        }
-        layout.addView(address, Ui.lp(-1, dp(56)))
-        layout.addView(mac, Ui.lp(-1, dp(56)))
-        layout.addView(http, Ui.lp(-1, dp(49)))
-        layout.addView(Ui.text(this,
-            "Bei HTTP kann die MAC-Adresse im Netzwerk mitgelesen werden. " +
-                "Verwende möglichst HTTPS. MAC und URL werden verschlüsselt auf diesem Gerät gespeichert.",
-            12f, Ui.MUTED), Ui.lp(-1, dp(72)))
+        startActivityForResult(Intent(this, MacPortalProfilesActivity::class.java), PROFILE_REQUEST)
+    }
 
-        val dialog = AlertDialog.Builder(this).setTitle("MAC-Portal verbinden")
-            .setView(layout)
-            .setNegativeButton("Abbrechen", null)
-            .setNeutralButton("Entfernen") { _, _ ->
-                AlertDialog.Builder(this).setTitle("Portal entfernen?")
-                    .setMessage("Gespeicherte Portal-Adresse und MAC-Adresse löschen?")
-                    .setNegativeButton("Abbrechen", null)
-                    .setPositiveButton("Entfernen") { _, _ ->
-                        store.remove()
-                        api = null
-                        createView()
-                        renderEmpty()
-                    }.show()
-            }
-            .setPositiveButton("Speichern", null).create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val result = runCatching {
-                    MacPortalSource.fromInput(address.text.toString(), mac.text.toString(), http.isChecked)
-                }
-                result.fold(onSuccess = { source ->
-                    store.save(source)
-                    dialog.dismiss()
-                    api = null
-                    createView()
-                    connect()
-                }, onFailure = {
-                    Toast.makeText(this, it.message ?: "Eingaben ungültig.",
-                        Toast.LENGTH_LONG).show()
-                })
-            }
-        }
-        dialog.show()
+    @Deprecated("Android activity result")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != PROFILE_REQUEST) return
+        api = null
+        kind = "itv"
+        chosen = "*"
+        page = 1
+        categories = listOf(MacPortalCategory("*", "Alle Kategorien"))
+        createView()
+        if (store.active() == null) renderEmpty() else connect()
     }
 
     private fun <T> task(message: String, action: () -> T, completed: (T) -> Unit) {
@@ -210,10 +173,14 @@ class MacPortalActivity : Activity() {
     }
 
     private fun connect() {
-        val source = store.load()
-        if (source == null) { renderEmpty(); return }
-        task("Verbinde mit MAC-Portal …", {
-            MacPortalClient(source).also { it.connect() }
+        val active = store.active()
+        if (active == null) { renderEmpty(); return }
+        api = null
+        content.removeAllViews()
+        canNext = false
+        pagination.text = ""
+        task("Verbinde mit " + active.name + " …", {
+            MacPortalClient(active.source).also { it.connect() }
         }) { connected ->
             api = connected
             chosen = "*"
@@ -313,11 +280,13 @@ class MacPortalActivity : Activity() {
                 putExtra("direct_stream_url", url)
                 putExtra("direct_stream_title", item.name)
                 putExtra("direct_stream_is_live", item.type == "itv")
-                putExtra("direct_allow_http", store.load()?.allowHttp == true)
+                putExtra("direct_allow_http", store.active()?.source?.allowHttp == true)
             })
             status.text = "Stream an den integrierten Player übergeben."
         }
     }
+
+    companion object { private const val PROFILE_REQUEST = 4157 }
 
     override fun onDestroy() {
         workers.shutdownNow()
