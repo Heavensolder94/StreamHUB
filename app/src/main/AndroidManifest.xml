@@ -15,8 +15,12 @@
         android:icon="@drawable/ic_streamhub"
         android:banner="@drawable/tv_banner"
         android:theme="@style/Theme.StreamHub"
-        android:usesCleartextTraffic="false"
+        android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/streamhub_network_security">
+        <activity
+            android:name=".MacPortalActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
         <activity
             android:name=".LiveTvActivity"
             android:exported="false"

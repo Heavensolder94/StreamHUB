@@ -52,11 +52,14 @@ class LiveTvActivity : Activity() {
             Ui.lp(dp(136), dp(44)).apply { rightMargin = dp(9) })
         header.addView(Ui.button(this, "⋮ Playlists", true) { playlistMenu() },
             Ui.lp(dp(148), dp(44)).apply { rightMargin = dp(9) })
+        header.addView(Ui.button(this, "📡 MAC IPTV", true) {
+            startActivity(Intent(this, MacPortalActivity::class.java))
+        }, Ui.lp(dp(156), dp(44)).apply { rightMargin = dp(9) })
         header.addView(Ui.button(this, "← Zurück", true) { finish() },
             Ui.lp(dp(132), dp(44)))
         root.addView(header, Ui.lp(-1, dp(65)))
         root.addView(Ui.text(this,
-            "Fernsehen direkt in StreamHUB – kein Kodi erforderlich. " +
+            "Fernsehen direkt in StreamHUB – inklusive MAC-IPTV-Portalen, ohne Kodi. " +
                 "Importierte HTTPS-Senderstreams verwenden den integrierten Player.",
             13f, Ui.MUTED), Ui.lp(-1, dp(51)))
 

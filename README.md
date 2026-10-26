@@ -1,3 +1,23 @@
+# StreamHUB Premium V2.5 — MAC-IPTV / Stalker-Portal
+
+Der vorhandene native LIVE-TV-Bereich hat zusätzlich den Button 📡 MAC IPTV. Dieser öffnet einen Kodi-unabhängigen Client für vom Nutzer bereitgestellte, autorisierte MAG-/Stalker-/Ministra-Portale. Der Rest der App bleibt unverändert.
+
+## Einrichtung
+
+1. In LIVE TV auf 📡 MAC IPTV und anschließend ⚙ Portal gehen.
+2. Die Portal-URL des eigenen IPTV-Anbieters (z. B. https://portal.example.org/c/) und die bei diesem Anbieter freigeschaltete MAC-Adresse (z. B. 00:1A:79:12:34:56) eingeben.
+3. Für unverschlüsselte HTTP-Portale muss "Unsicheres HTTP ausdrücklich erlauben" aktiviert werden. Dabei ist die MAC im Netzwerk lesbar; HTTPS ist sicherer.
+4. Speichern. Der Client testet ein MAG-Handshake, lädt die Kategorien und zeigt die jeweils vom Anbieter bereitgestellten Inhalte an.
+5. Oben zwischen LIVE TV / FILME / SERIEN wechseln. Kategorie auswählen, Eintrag öffnen und direkt über Media3/ExoPlayer abspielen. Einige Serienportale unterstützen Episodenlisten; Varianten ohne unterstützten Episoden-Endpunkt zeigen eine Fehlermeldung.
+
+Technische Details: Stalker-Portalsuche (portal.php, server/load.php), MAC-Cookie und Bearer-Handshake, Genre-/VOD-/Serienkategorien, seitenweise Kataloganzeige, create_link-Auflösung für zeitlich begrenzte Streams, direkter Android-TV-Player. Portal-URL und MAC werden mit Android Keystore AES-GCM lokal verschlüsselt gespeichert. Es werden keine vorinstallierten Sender, Portale oder Zugangsdaten mitgeliefert. Es findet kein Umgehen von gesperrten Konten oder Zugangsprüfungen statt.
+
+Einschränkungen: Stalker-/Ministra-Portale unterscheiden sich in Aufbau, Gerätebindung, Tokens und Episodenformaten. Die Funktionen können ohne einen Testzugang nicht für jedes Portal verifiziert werden. HTTP wurde nur für explizit freigegebene Portale/Streams in dieser neuen Funktion vorgesehen; die Android-Netzwerkkonfiguration erlaubt dazu technisch HTTP-Anfragen appweit. Die bestehenden M3U-Importe bleiben auf HTTPS beschränkt. Es gibt noch keine EPG-/Timeshift-Funktion für MAC-Portale und keine Unterstützung zusätzlicher Hardware-Signaturen. Nur vom Anbieter legitimierte MAC-IDs verwenden.
+
+APK: GitHub Actions → Build Android TV APK → erfolgreicher Lauf → Artifacts → StreamHub-Premium-V2.5-debug-apk.
+
+---
+
 # StreamHUB Premium V2.4 — Eigenständiges LIVE TV (ohne Kodi)
 
 Diese Version bringt einen eigenen Menüpunkt **📺 LIVE TV** in StreamHUB, sowohl auf der Startseite als auch in der Film-Bibliothek. Die Senderliste und die Wiedergabe sind native Android-TV-Funktionen: **Kodi wird weder gestartet noch benötigt**.
