@@ -18,6 +18,10 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/streamhub_network_security">
         <activity
+            android:name=".XtreamActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
             android:name=".UpdateCheckActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
