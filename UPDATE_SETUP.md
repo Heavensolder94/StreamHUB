@@ -49,3 +49,7 @@ Die bisherigen `assembleDebug`-APKs eignen sich **nicht** für fortlaufende Inst
 - Nur normale, veröffentlichte Releases mit valider SHA-256-Angabe werden angeboten; Entwürfe und Prereleases werden ignoriert.
 - Ein GitHub-Commit ist **nicht** direkt ein App-Update. Erst der erfolgreich durchgelaufene signierte Release-Build erzeugt eine installierbare Version.
 - Ohne eingerichtete GitHub-Secrets baut die bestehende `android.yml` weiterhin Debug-APKs als GitHub Actions Artifacts. Sie lösen jedoch keine In-App-Updates aus.
+
+## Initialen Release-Build auslösen
+
+Der erste veröffentlichte Release-Build wird durch einen Commit nach der Aktivierung der GitHub-Actions-Variable gestartet. Danach muss der Workflow **Publish StreamHUB updates** erfolgreich sein, bevor die APK unter **Releases** verfügbar wird.
