@@ -15,6 +15,7 @@ import android.graphics.drawable.GradientDrawable
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.TextView
+import android.widget.ImageView
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -30,6 +31,7 @@ import android.net.Uri
 class MainActivity : Activity() {
     private enum class Tab(val label: String, val heading: String) {
         HOME("Startseite", "Deine Streaming-Zentrale"),
+        COVERS("Cover entdecken", "Film- und Anime-Cover aus deinen Webseiten"),
         SEARCH("Suche", "Webseiten durchsuchen"),
         ANIME("Anime", "Anime-Webseiten"),
         FILME("Filme", "Film-Webseiten"),
@@ -41,6 +43,8 @@ class MainActivity : Activity() {
     }
 
     private val store by lazy { SiteStore(this) }
+    private val covers by lazy { WebsiteCovers(this) }
+    private var forceCoverRefresh = false
     private var tab = Tab.HOME
     private var searchTerm = ""
     private var onlyUnavailable = false
@@ -84,7 +88,7 @@ class MainActivity : Activity() {
             Ui.lp(-1, dp(31)))
 
         val navs = listOf(
-            Tab.HOME to "⌂", Tab.SEARCH to "⌕", Tab.ANIME to "✦",
+            Tab.HOME to "⌂", Tab.COVERS to "▧", Tab.SEARCH to "⌕", Tab.ANIME to "✦",
             Tab.FILME to "▣", Tab.SERIEN to "▤", Tab.MIX to "◈",
             Tab.FAVORITES to "♥", Tab.HISTORY to "↺", Tab.MANAGE to "⚙"
         )
@@ -111,7 +115,7 @@ class MainActivity : Activity() {
             if (choice == tab) firstNav[0] = entry
         }
         sidebar.addView(View(this), LinearLayout.LayoutParams(1, 0, 1f))
-        sidebar.addView(Ui.text(this, "STREAMHUB  1.6", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "STREAMHUB  1.7", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
         sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
         val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }
@@ -137,6 +141,7 @@ class MainActivity : Activity() {
         scroll.addView(content)
         when(tab) {
             Tab.HOME -> renderHome(content)
+            Tab.COVERS -> renderCoverDiscovery(content)
             Tab.SEARCH -> renderSearch(content)
             Tab.ANIME -> renderGrid(content, store.sites().filter { it.section == Section.ANIME })
             Tab.FILME -> renderGrid(content, store.sites().filter { it.section == Section.FILME })
@@ -151,6 +156,7 @@ class MainActivity : Activity() {
 
     private fun subtitle(): String = when(tab) {
         Tab.HOME -> "Alles an einem Ort. Für deinen Fernseher."
+        Tab.COVERS -> "Öffentlich sichtbare Poster aus allen gespeicherten Webseiten mit Adresse."
         Tab.SEARCH -> "Finde deine Lieblingsportale und gespeicherte Webseiten."
         Tab.MANAGE -> "Webseiten verwalten, prüfen und Listen importieren."
         Tab.HISTORY -> "Zuletzt geöffnete Seiten auf diesem Gerät."
@@ -185,7 +191,7 @@ class MainActivity : Activity() {
         val heroActions = Ui.horizontal(this)
         heroActions.addView(Ui.button(this, "▶  ANIME ENTDECKEN", true) { showTab(Tab.ANIME) },
             Ui.lp(dp(194), dp(41)).apply { rightMargin = dp(9) })
-        heroActions.addView(Ui.button(this, "♥  FAVORITEN", true) { showTab(Tab.FAVORITES) },
+        heroActions.addView(Ui.button(this, "▧  COVER", true) { showTab(Tab.COVERS) },
             Ui.lp(dp(150), dp(41)))
         heroContent.addView(heroActions, Ui.lp(-1, dp(47)))
         hero.addView(heroContent, FrameLayout.LayoutParams(-1, -1))
@@ -280,6 +286,19 @@ class MainActivity : Activity() {
         }
         card.addView(CinematicArtwork(this, site.name, site.section.label),
             FrameLayout.LayoutParams(-1,-1))
+        // Source artwork: public HTML/OpenGraph metadata, cached locally.
+        val poster = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        card.addView(poster, FrameLayout.LayoutParams(-1, -1))
+        if (site.url.isNotBlank()) {
+            covers.request(site) { metadata ->
+                if (metadata.imageUrl.isNotBlank() && !isDestroyed) {
+                    covers.loadInto(poster, metadata.imageUrl)
+                }
+            }
+        }
         val shade = View(this).apply {
             background = Ui.gradient(this@MainActivity,
                 intArrayOf(0x08081017, 0x88090C14.toInt(), 0xF9090B10.toInt()),
@@ -341,6 +360,104 @@ class MainActivity : Activity() {
             if (site.url.isBlank()) editSite(site) else launchBrowser(site.name, site.url)
         }
         return card
+    }
+
+
+    private fun renderCoverDiscovery(into: LinearLayout) {
+        val sources = store.sites().filter { it.url.startsWith("https://") }
+        val placeholders = store.sites().count { it.url.isBlank() }
+        into.addView(Ui.text(this,
+            "Bilder direkt aus den eingebundenen Webseiten • ${sources.size} Quellen mit Adresse • " +
+                "${placeholders} ohne URL. Nicht alle Webseiten veröffentlichen auslesbare Cover.",
+            14f, Ui.SOFT), Ui.lp(-1, dp(62)))
+
+        val action = Ui.button(this, "↻  Cover aller Quellen aktualisieren", true) {
+            forceCoverRefresh = true
+            showTab(Tab.COVERS)
+        }
+        into.addView(action, Ui.lp(dp(300), dp(48)).apply { bottomMargin = dp(13) })
+        val progress = Ui.text(this, "Lade gespeicherte Poster-Daten …", 13f, Ui.MUTED)
+        into.addView(progress, Ui.lp(-1, dp(36)))
+        val gallery = Ui.vertical(this)
+        into.addView(gallery, Ui.lp(-1, -2))
+        val started = forceCoverRefresh
+        forceCoverRefresh = false
+        var checked = 0
+        var shown = 0
+        sources.forEach { site ->
+            covers.request(site, force = started) { result ->
+                if (tab != Tab.COVERS || isFinishing || isDestroyed) return@request
+                checked++
+                if (result.entries.isNotEmpty()) {
+                    shown += result.entries.size
+                    addHeading(gallery, "${site.name}  ·  ${result.entries.size} Cover")
+                    val rail = HorizontalScrollView(this).apply {
+                        isFocusable = false
+                        isHorizontalScrollBarEnabled = false
+                        overScrollMode = View.OVER_SCROLL_NEVER
+                    }
+                    val line = Ui.horizontal(this).apply {
+                        clipChildren = false
+                        clipToPadding = false
+                        setPadding(dp(5), dp(4), dp(8), dp(9))
+                    }
+                    result.entries.forEach { entry ->
+                        line.addView(createCoverTile(site, entry),
+                            Ui.lp(dp(177), dp(243)).apply { rightMargin = dp(16) })
+                    }
+                    rail.addView(line)
+                    gallery.addView(rail, Ui.lp(-1, dp(268)))
+                }
+                progress.text = "$checked/${sources.size} Webseiten geprüft · $shown Cover gefunden"
+                if (checked == sources.size && shown == 0) {
+                    gallery.addView(Ui.text(this,
+                        "Keine auslesbaren Cover gefunden. Manche Seiten laden Bilder nur per JavaScript " +
+                            "oder blockieren automatische Anfragen. Die normalen Webseiten-Kacheln bleiben nutzbar.",
+                        15f, Ui.MUTED), Ui.lp(-1, dp(90)))
+                }
+            }
+        }
+    }
+
+    private fun createCoverTile(site: Site, entry: DiscoveredCover): View {
+        val tile = FrameLayout(this).apply {
+            isFocusable = true
+            isClickable = true
+            background = Ui.bg(Ui.PANEL, 15f, context = this@MainActivity)
+            clipToOutline = true
+        }
+        tile.addView(CinematicArtwork(this, entry.title, site.section.label),
+            FrameLayout.LayoutParams(-1, -1))
+        val image = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        tile.addView(image, FrameLayout.LayoutParams(-1, -1))
+        covers.loadInto(image, entry.imageUrl)
+        tile.addView(View(this).apply {
+            background = Ui.gradient(this@MainActivity,
+                intArrayOf(0x000A0D13, 0x770A0D13, 0xF5090B12.toInt()),
+                15f, GradientDrawable.Orientation.TOP_BOTTOM)
+        }, FrameLayout.LayoutParams(-1, -1))
+        val label = Ui.vertical(this).apply {
+            setPadding(dp(12), 0, dp(11), dp(14))
+        }
+        val title = Ui.text(this, entry.title, 17f, Ui.TEXT, true).apply {
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        label.addView(title, Ui.lp(-1, dp(53)))
+        label.addView(Ui.text(this, site.name + " · ÖFFNEN", 11f, Ui.BLUE, true),
+            Ui.lp(-1, dp(28)))
+        tile.addView(label, FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM))
+        tile.setOnFocusChangeListener { view, focused ->
+            tile.foreground = Ui.bg(Color.TRANSPARENT, 15f,
+                if (focused) Ui.BLUE else Color.TRANSPARENT, this)
+            view.animate().scaleX(if (focused) 1.055f else 1f)
+                .scaleY(if (focused) 1.055f else 1f).setDuration(145).start()
+        }
+        tile.setOnClickListener { launchBrowser(entry.title, entry.pageUrl) }
+        return tile
     }
 
     private fun renderSearch(into: LinearLayout) {
@@ -548,6 +665,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         checker.shutdownNow()
+        covers.shutdown()
         super.onDestroy()
     }
 
