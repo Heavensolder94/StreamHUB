@@ -118,12 +118,13 @@ internal object NativeSourceIndex {
                         client.connect()
                         for (kind in listOf("itv", "vod", "series")) {
                             for (page in 1..3) {
-                                val result = runCatching { client.page(kind, "*", page) }
-                                    .getOrElse {
-                                        issues.add(selected.name + " " + kind + ": " +
-                                            (it.message ?: "Katalogfehler").take(85))
-                                        break
-                                    }
+                                val attempt = runCatching { client.page(kind, "*", page) }
+                                if (attempt.isFailure) {
+                                    issues.add(selected.name + " " + kind + ": " +
+                                        (attempt.exceptionOrNull()?.message ?: "Katalogfehler").take(85))
+                                    break
+                                }
+                                val result = attempt.getOrThrow()
                                 result.entries.take(150).forEach { media ->
                                     items.add(NativeMediaSource(
                                         "mac:" + selected.id + ":" + kind + ":" +
