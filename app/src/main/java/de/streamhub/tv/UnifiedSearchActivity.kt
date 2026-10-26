@@ -23,7 +23,8 @@ private data class UnifiedSource(
     val key: String, val label: String, val kind: String,
     val profileId: String? = null,
     val title: String,
-    val channel: LiveChannel? = null, val item: MacPortalMedia? = null
+    val channel: LiveChannel? = null, val item: MacPortalMedia? = null,
+    val xtream: XtreamTitle? = null
 )
 
 /**
@@ -88,8 +89,8 @@ class UnifiedSearchActivity : Activity() {
         }
         root.addView(allProfiles, Ui.lp(-1, dp(48)))
         root.addView(Ui.text(this,
-            "Sucht in importierten M3U-Sendern und in LIVE TV, FILMEN und SERIEN " +
-                "der ausgewählten MAC-Portale. Nur selbst konfigurierte Zugänge.",
+            "Sucht in M3U, gespeichertem Xtream-Zugang und LIVE TV, FILMEN, SERIEN " +
+                "der ausgewählten MAC-Portale. Nur eigene, autorisierte Quellen.",
             12f, Ui.MUTED), Ui.lp(-1, dp(58)))
         info = Ui.text(this, "Suchbegriff eingeben oder Merkliste öffnen.", 13f, Ui.SOFT)
         root.addView(info, Ui.lp(-1, dp(37)))
@@ -135,7 +136,7 @@ class UnifiedSearchActivity : Activity() {
         busy = true
         val request = ++activeRequest
         results.removeAllViews()
-        info.text = "Durchsuche M3U und " + targets.size + " Portal(e) … " + message
+        info.text = "Durchsuche M3U, Xtream und " + targets.size + " MAC-Portal(e) … " + message
         pool.execute {
             val hits = mutableListOf<UnifiedSource>()
             val failures = mutableListOf<String>()
@@ -144,6 +145,27 @@ class UnifiedSearchActivity : Activity() {
                     if (!same(search, channel.name)) continue
                     hits.add(UnifiedSource("m3u:" + channel.id, "Meine M3U-Sender",
                         "itv", title = channel.name, channel = channel))
+                }
+                val xtreamAccount = XtreamStore(this).load()
+                if (xtreamAccount != null) {
+                    try {
+                        val xtreamClient = XtreamClient(xtreamAccount)
+                        xtreamClient.verify()
+                        for (kind in listOf("itv", "vod", "series")) {
+                            val titles = runCatching { xtreamClient.titles(kind) }
+                                .getOrElse { failures.add("Xtream / " + kind); emptyList() }
+                            titles.filter { same(search, it.name) }.take(100).forEach { title ->
+                                hits.add(UnifiedSource(
+                                    "xtream:" + xtreamAccount.server.hashCode() +
+                                        ":" + title.kind + ":" + title.id,
+                                    "Xtream Codes", title.kind, title = title.name,
+                                    xtream = title
+                                ))
+                            }
+                        }
+                    } catch (_: Exception) {
+                        failures.add("Xtream-Anbieter (nicht erreichbar)")
+                    }
                 }
                 for (profile in targets) {
                     try {
@@ -275,6 +297,10 @@ class UnifiedSearchActivity : Activity() {
             })
             return
         }
+        if (hit.xtream != null) {
+            openXtream(hit.xtream, hit.key)
+            return
+        }
         val profile = portals.profiles().firstOrNull { it.id == hit.profileId }
         val media = hit.item
         if (profile == null || media == null) {
@@ -307,6 +333,56 @@ class UnifiedSearchActivity : Activity() {
                 }, onFailure = { info.text = it.message ?: "Quelle nicht erreichbar." })
             }
         }
+    }
+
+    private fun openXtream(title: XtreamTitle, historyKey: String) {
+        val account = XtreamStore(this).load()
+        if (account == null) {
+            info.text = "Kein Xtream-Zugang eingerichtet."
+            return
+        }
+        if (busy) return
+        busy = true
+        info.text = "Verbinde mit Xtream-Portal …"
+        pool.execute {
+            val outcome = runCatching {
+                val client = XtreamClient(account)
+                client.verify()
+                Pair(client, if (title.kind == "series") client.episodes(title)
+                    else emptyList())
+            }
+            handler.post {
+                if (isDestroyed || isFinishing) return@post
+                busy = false
+                outcome.fold(onSuccess = { (client, episodes) ->
+                    if (title.kind == "series") {
+                        if (episodes.isEmpty()) {
+                            info.text = "Keine Episoden für diese Serie gefunden."
+                        } else AlertDialog.Builder(this).setTitle(title.name + " · Episoden")
+                            .setItems(episodes.map { it.name }.toTypedArray()) { _, index ->
+                                playXtream(account, client, episodes[index], historyKey)
+                            }.setNegativeButton("Abbrechen", null).show()
+                    } else playXtream(account, client, title, historyKey)
+                }, onFailure = { info.text = it.message ?: "Xtream-Verbindung fehlgeschlagen." })
+            }
+        }
+    }
+
+    private fun playXtream(
+        account: XtreamSource, client: XtreamClient, title: XtreamTitle, key: String
+    ) {
+        val url = runCatching { client.url(title) }.getOrElse {
+            info.text = it.message ?: "Keine Stream-URL verfügbar."
+            return
+        }
+        startActivity(Intent(this, LiveTvPlayerActivity::class.java).apply {
+            putExtra("direct_stream_url", url)
+            putExtra("direct_stream_title", title.name)
+            putExtra("direct_stream_is_live", title.kind == "itv")
+            putExtra("direct_allow_http", account.allowHttp)
+            putExtra("history_id", key + ":" + title.id)
+            putExtra("history_kind", title.kind)
+        })
     }
 
     private fun resolveAndPlay(
