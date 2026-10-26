@@ -1,3 +1,19 @@
+# StreamHUB Premium V2.1 – Film auswählen, Anbieter auswählen
+
+**Neu:** Auf jeder Film- und Serien-Detailseite erscheinen unter dem Poster drei Quellenbereiche.
+
+1. **DeVideoSRC-Player** bei gültiger IMDb-ID aus TMDB: Filme direkt oder über Custom-Player öffnen; Serien-Player oder einzelne Staffel und Episode wählen. Die tatsächliche Abspielbarkeit bleibt unbestätigt.
+2. **Für Deutschland gemeldete Streaminganbieter:** Die dokumentierte TMDB API liefert unter /movie/{id}/watch/providers und /tv/{id}/watch/providers Verfügbarkeitsdaten aus der JustWatch-Partnerschaft. StreamHUB verwendet Ergebnisse für DE und trennt Abonnement, kostenlos, werbefinanziert, Leihe und Kauf. Die jeweiligen Logo-Schaltflächen öffnen die TMDB-Watch-Seite. **Keine direkten Stream-Links** werden von der Provider-API geliefert. Attribution: **Watch availability data provided by JustWatch via TMDB.**
+3. **Gespeicherte Webseiten:** Einträge mit HTTPS-Adresse werden als Favoriten und in einer vollständigen Auswahlliste angezeigt. Beim Öffnen der Webseite wird der gewählte Filmtitel in die Zwischenablage kopiert, damit die Suche auf der Webseite leichter ist. **Keine automatische Bestätigung, dass ein Titel auf einer gespeicherten Webseite verfügbar ist.**
+
+Die Schaltfläche **„Jetzt ansehen“** springt zum neuen Panel. Der bestehende TMDB-Katalog, eigene Merkliste, DeVideoSRC, Webseiten-Favoriten und Suchansicht bleiben erhalten.
+
+**Installation:** TMDB v3-API-Key oder Read Access Token wird weiterhin benötigt, damit Poster, IMDb-Zuordnung und die DE-Verfügbarkeitsliste geladen werden können. GitHub Actions > Build Android TV APK > Artifacts > StreamHub-Premium-V2.1-debug-apk > ZIP entpacken > app-debug.apk.
+
+**Wichtig:** Es gibt weiterhin keine gemeinsame technische Titel-API für alle 58 gespeicherten Webseiten. Der Player und die Drittanbieter müssen auf Android TV getestet werden. TMDB/JustWatch-Daten können sich ändern und sind keine garantierte Abspielbarkeit. Kein DRM-Bypass, kein automatisches Auslesen von Filmdateien.
+
+---
+
 # StreamHUB Premium V2.0 — Film- und Serienbibliothek
 
 ## Neu
