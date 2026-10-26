@@ -11,8 +11,25 @@ android {
         applicationId = "de.streamhub.tv"
         minSdk = 23
         targetSdk = 35
-        versionCode = 17
-        versionName = "2.6.0"
+        val ciBuild = System.getenv("STREAMHUB_CI_BUILD_NUMBER")?.toIntOrNull()
+        versionCode = if (ciBuild != null) 100000 + ciBuild else 18
+        versionName = if (ciBuild != null) "2.7.$ciBuild" else "2.7.0"
+    }
+
+    signingConfigs {
+        create("signedRelease") {
+            storeFile = System.getenv("STREAMHUB_SIGNING_STORE_FILE")?.let { file(it) }
+            storePassword = System.getenv("STREAMHUB_SIGNING_STORE_PASSWORD")
+            keyAlias = System.getenv("STREAMHUB_SIGNING_KEY_ALIAS")
+            keyPassword = System.getenv("STREAMHUB_SIGNING_KEY_PASSWORD")
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            if (!System.getenv("STREAMHUB_SIGNING_STORE_FILE").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("signedRelease")
+            }
+        }
     }
 
     compileOptions {
@@ -24,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.core:core:1.15.0")
     implementation("org.jsoup:jsoup:1.23.2")
     val media3Version = "1.8.1"
     implementation("androidx.media3:media3-exoplayer:$media3Version")
