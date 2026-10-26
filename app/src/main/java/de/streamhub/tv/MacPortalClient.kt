@@ -13,6 +13,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.security.KeyStore
 import java.util.Locale
+import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
