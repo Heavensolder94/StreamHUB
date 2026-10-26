@@ -90,6 +90,9 @@ class MainActivity : Activity() {
         }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(13) })
         sidebar.addView(Ui.button(this, "📺  LIVE TV", true) {
             startActivity(Intent(this, LiveTvActivity::class.java))
+        }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(8) })
+        sidebar.addView(Ui.button(this, "⌕  ALLE QUELLEN", true) {
+            startActivity(Intent(this, UnifiedSearchActivity::class.java))
         }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(13) })
         sidebar.addView(Ui.text(this, "ENTDECKEN", 10f, Ui.MUTED, true),
             Ui.lp(-1, dp(31)))
@@ -130,7 +133,7 @@ class MainActivity : Activity() {
             navColumn.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
             if (choice == tab) firstNav[0] = entry
         }
-        sidebar.addView(Ui.text(this, "STREAMHUB  2.6", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "STREAMHUB  2.7", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
         sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
         val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }
