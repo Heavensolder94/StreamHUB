@@ -25,7 +25,7 @@ android {
 
 dependencies {
     implementation("org.jsoup:jsoup:1.23.2")
-    val media3Version = "1.11.1"
+    val media3Version = "1.8.1"
     implementation("androidx.media3:media3-exoplayer:$media3Version")
     implementation("androidx.media3:media3-exoplayer-hls:$media3Version")
     implementation("androidx.media3:media3-exoplayer-dash:$media3Version")
