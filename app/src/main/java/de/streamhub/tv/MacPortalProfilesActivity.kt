@@ -132,11 +132,9 @@ class MacPortalProfilesActivity : Activity() {
             uiHandler.post {
                 if (isFinishing || isDestroyed) return@post
                 val text = outcome.fold(
-                    onSuccess = { "Handshake erfolgreich. Portal erreichbar.
-" +
+                    onSuccess = { "Handshake erfolgreich. Portal erreichbar.\n" +
                         "Ob einzelne Streams funktionieren, muss separat geprüft werden." },
-                    onFailure = { "Handshake fehlgeschlagen:
-" +
+                    onFailure = { "Handshake fehlgeschlagen:\n" +
                         (it.message ?: "Unbekannter Fehler").take(250) })
                 AlertDialog.Builder(this).setTitle("Verbindungstest: " + profile.name)
                     .setMessage(text).setPositiveButton("OK", null).show()
