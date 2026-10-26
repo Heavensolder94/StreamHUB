@@ -1,3 +1,19 @@
+# StreamHUB Premium V2.8 — TV-Fokus und integrierter Webseiten-Browser
+
+Die V2.7-Funktionen (IPTV, Xtream, M3U, EPG, Quellen-Suche) bleiben erhalten. V2.8 verbessert die Oberfläche **speziell für Steuerkreuz und OK-Taste der Android-TV-Fernbedienung**:
+
+- **Deutlich sichtbarer TV-Fokus:** Alle nativen StreamHUB-Schaltflächen bekommen bei Fokus eine intensive blaue Fläche mit weißem Rand, Zoom und Schatten. Die Quellkacheln, Filmcover und entdeckten Website-Cover haben einen **4dp türkisblauen Rahmen**, leicht aufgehellte Fläche und 3D-Anhebung.
+- **Externe Seiten bleiben in StreamHUB:** Der native Android-Webbrowser zeigt den Namen der Quelle in einer einheitlichen StreamHUB-Leiste, deren Herkunft, Favoritenstatus, Zurück/Vorwärts/Neu laden, einen Button zum Wechseln zwischen gespeicherten Webquellen und optionalen externen Browser. Wechsel zwischen Quellen geschieht im selben Bildschirm.
+- **TV-Modus für Webseiten:** Ist standardmäßig aktiviert. Wenn die eingebettete WebView den Fokus hat, steuern Pfeiltasten ein sichtbares, türkises Auswahlrechteck über gewöhnliche **sichtbare Links, Buttons und Eingabefelder** der Seite. **OK** aktiviert das ausgewählte Element; bei Eingabefeldern wechselt StreamHUB automatisch in den normalen WebView-Modus, um die Eingabe zu ermöglichen. Mit **Pfeil hoch am oberen Seitenrand** oder der **Menü-Taste** kann die StreamHUB-Leiste fokussiert werden. Der TV-Modus ist in der Leiste abschaltbar.
+- **Startseite und Filmbibliothek:** Einheitliches, verstärktes Fokus-Verhalten auf Kacheln, inkl. Fernbedienungs-Feedback. Anbieter-Kacheln öffnen den StreamHUB-Webbrowser statt eine fremde App zu erfordern.
+- **Sicherheit:** Externe Webseiten müssen per HTTPS geöffnet werden. Keine Umgehung von DRM, Logins, Paywalls oder Kopierschutz; keine automatische, fremde Titel-/Videoextraktion.
+  
+**Technische Grenzen:** Manche Webseiten nutzen geschützte Videoplayer, verschachtelte oder fremde iFrames, dynamische SPAs, DRM oder Layouts, die nicht zuverlässig über WebView/Steuerkreuz zu bedienen sind. Der TV-Modus kann nur Elemente des direkt zugänglichen HTML-Dokuments fokussieren. Solche Seiten können über `↗ Extern` an einen installierten Browser übergeben werden. Die Webseite selbst wird **nicht** zu einem nativen Filmkatalog; die bestehenden TMDB- und IPTV-Funktionen bleiben separat.
+
+**APK:** GitHub Actions → Build Android TV APK → Artifacts → `StreamHub-Premium-V2.8-debug-apk` (nach erfolgreichem Build). Eine bestehende Installation lässt sich nur bei identischer App-Signatur aktualisieren.
+
+---
+
 # StreamHUB V2.7 — Neue Quellenübersicht, EPG, Xtream, Weiterschauen
 
 StreamHUB bietet jetzt eine **gemeinsame native IPTV-Suche** für importierte M3U-Sender, den optionalen Xtream-Zugang und aktivierte MAC-Portale. Inaktive MAC-Profile werden nur mit ausdrücklichem Such-Opt-in (bis zu 5 Profile) abgefragt. Gleichnamige Titel erscheinen zusammen, aber der Nutzer wählt die tatsächliche Quelle. Große Portale werden aus Performancegründen nur ausschnittsweise durchsucht; **dies ist keine vollständige Web-/TMDB-Suche über alle externen Webseiten**.
