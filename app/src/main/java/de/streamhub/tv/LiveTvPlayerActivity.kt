@@ -52,10 +52,12 @@ class LiveTvPlayerActivity : Activity() {
         }
         nowPlaying = Ui.text(this, "📺  LIVE TV", 22f, Ui.TEXT, true)
         header.addView(nowPlaying, LinearLayout.LayoutParams(0, dp(52), 1f))
-        header.addView(Ui.button(this, "‹  Sender", true) { switchChannel(-1) },
-            Ui.lp(dp(135), dp(49)).apply { rightMargin = dp(8) })
-        header.addView(Ui.button(this, "Sender  ›", true) { switchChannel(1) },
-            Ui.lp(dp(135), dp(49)).apply { rightMargin = dp(8) })
+        if (directUrl.isBlank()) {
+            header.addView(Ui.button(this, "‹  Sender", true) { switchChannel(-1) },
+                Ui.lp(dp(135), dp(49)).apply { rightMargin = dp(8) })
+            header.addView(Ui.button(this, "Sender  ›", true) { switchChannel(1) },
+                Ui.lp(dp(135), dp(49)).apply { rightMargin = dp(8) })
+        }
         header.addView(Ui.button(this, "✕ Zurück", true) { finish() },
             Ui.lp(dp(135), dp(49)))
         root.addView(header, Ui.lp(-1, dp(70)))
