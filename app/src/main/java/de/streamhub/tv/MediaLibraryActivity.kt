@@ -354,13 +354,7 @@ class MediaLibraryActivity : Activity() {
             "%.1f".format(java.util.Locale.GERMANY, title.rating), 11f, Ui.SOFT),
             Ui.lp(-1, dp(22)))
         card.addView(text, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
-        card.foreground = Ui.bg(Color.TRANSPARENT, 13f, Color.TRANSPARENT, this)
-        card.setOnFocusChangeListener { view, focused ->
-            card.foreground = Ui.bg(Color.TRANSPARENT, 13f,
-                if (focused) Ui.BLUE else Color.TRANSPARENT, this)
-            view.animate().scaleX(if (focused) 1.045f else 1f)
-                .scaleY(if (focused) 1.045f else 1f).setDuration(130).start()
-        }
+        Ui.focusCard(card, 13f, 1.065f)
         card.setOnClickListener { showDetail(title) }
         return card
     }

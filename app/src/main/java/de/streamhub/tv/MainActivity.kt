@@ -357,6 +357,8 @@ class MainActivity : Activity() {
         favorite.setOnFocusChangeListener { view, focus ->
             view.background = Ui.bg(if (focus) Ui.BLUE else 0xAB101827.toInt(), 12f, context = this)
             favorite.setTextColor(if (focus) Ui.BG else if (site.favorite) Ui.BLUE else Ui.TEXT)
+            view.animate().scaleX(if (focus) 1.12f else 1f)
+                .scaleY(if (focus) 1.12f else 1f).setDuration(130).start()
         }
         card.addView(favorite, FrameLayout.LayoutParams(dp(37),dp(35),
             Gravity.TOP or Gravity.RIGHT).apply { rightMargin = dp(11); topMargin = dp(9) })
@@ -374,19 +376,12 @@ class MainActivity : Activity() {
         host.ellipsize = android.text.TextUtils.TruncateAt.END
         details.addView(host, Ui.lp(-1, dp(22)))
         details.addView(Ui.text(this,
-            if (site.url.isBlank()) "＋  ADRESSE HINZUFÜGEN" else "▶  JETZT ÖFFNEN",
+            if (site.url.isBlank()) "＋  ADRESSE HINZUFÜGEN" else "▶  IM STREAMHUB ÖFFNEN",
             11f, if (site.url.isBlank()) 0xFFFFCC91.toInt() else Ui.BLUE, true),
             Ui.lp(-1, dp(24)))
         card.addView(details, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
 
-        card.foreground = Ui.bg(Color.TRANSPARENT, 15f, Color.TRANSPARENT, this)
-        card.setOnFocusChangeListener { view, focused ->
-            card.foreground = Ui.bg(Color.TRANSPARENT, 15f,
-                if (focused) Ui.BLUE else Color.TRANSPARENT, this)
-            view.animate().scaleX(if (focused) 1.06f else 1f)
-                .scaleY(if (focused) 1.06f else 1f).setDuration(160).start()
-            view.elevation = if (focused) dp(18).toFloat() else 0f
-        }
+        Ui.focusCard(card, 15f)
         card.setOnClickListener {
             if (site.url.isBlank()) editSite(site) else launchBrowser(site.name, site.url)
         }
@@ -481,12 +476,7 @@ class MainActivity : Activity() {
         label.addView(Ui.text(this, site.name + " · ÖFFNEN", 11f, Ui.BLUE, true),
             Ui.lp(-1, dp(28)))
         tile.addView(label, FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM))
-        tile.setOnFocusChangeListener { view, focused ->
-            tile.foreground = Ui.bg(Color.TRANSPARENT, 15f,
-                if (focused) Ui.BLUE else Color.TRANSPARENT, this)
-            view.animate().scaleX(if (focused) 1.055f else 1f)
-                .scaleY(if (focused) 1.055f else 1f).setDuration(145).start()
-        }
+        Ui.focusCard(tile, 15f)
         tile.setOnClickListener { launchBrowser(entry.title, entry.pageUrl) }
         return tile
     }
@@ -760,6 +750,7 @@ class MainActivity : Activity() {
             else BrowserActivity::class.java).apply {
             putExtra("name", name)
             putExtra("url", url)
+            putExtra("site_id", store.sites().firstOrNull { it.url == url }?.id.orEmpty())
         })
     }
 

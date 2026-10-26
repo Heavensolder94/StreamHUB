@@ -10,6 +10,7 @@ import android.graphics.RadialGradient
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.widget.FrameLayout
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -25,6 +26,25 @@ internal object Ui {
     const val MUTED = 0xFF9AA7BD.toInt()
     const val SOFT = 0xFFCDD6E6.toInt()
     const val BORDER = 0xFF273044.toInt()
+    const val FOCUS = 0xFF65D9FF.toInt()
+    const val FOCUS_FILL = 0xFF2388CE.toInt()
+
+    /** High-contrast DPAD focus treatment shared by all StreamHUB screens. */
+    fun focusCard(card: FrameLayout, radiusDp: Float = 15f, scale: Float = 1.07f) {
+        card.isFocusable = true
+        card.isClickable = true
+        card.setOnFocusChangeListener { view, focused ->
+            card.foreground = if (focused) {
+                bg(0x255AD6FF, radiusDp, FOCUS, card.context).apply {
+                    setStroke(card.context.dp(4), FOCUS)
+                }
+            } else bg(Color.TRANSPARENT, radiusDp, Color.TRANSPARENT, card.context)
+            view.animate().scaleX(if (focused) scale else 1f)
+                .scaleY(if (focused) scale else 1f).setDuration(145).start()
+            view.elevation = if (focused) card.context.dp(22).toFloat() else 0f
+        }
+        card.foreground = bg(Color.TRANSPARENT, radiusDp, Color.TRANSPARENT, card.context)
+    }
 
     fun Context.dp(value: Int): Int = (resources.displayMetrics.density * value + 0.5f).toInt()
 
@@ -59,11 +79,15 @@ internal object Ui {
         button.setPadding(context.dp(if (compact) 16 else 20), context.dp(8), context.dp(if (compact) 16 else 20), context.dp(8))
         button.background = bg(PANEL, 11f, BORDER, context)
         button.setOnFocusChangeListener { view, hasFocus ->
-            view.background = bg(if (hasFocus) BLUE else PANEL, 11f, if (hasFocus) Color.WHITE else BORDER, context)
-            button.setTextColor(if (hasFocus) BG else TEXT)
-            view.animate().scaleX(if (hasFocus) 1.045f else 1f)
-                .scaleY(if (hasFocus) 1.045f else 1f).setDuration(145).start()
-            view.elevation = if (hasFocus) context.dp(9).toFloat() else 0f
+            view.background = bg(if (hasFocus) FOCUS_FILL else PANEL, 11f,
+                if (hasFocus) Color.WHITE else BORDER, context).apply {
+                    setStroke(context.dp(if (hasFocus) 3 else 1),
+                        if (hasFocus) Color.WHITE else BORDER)
+                }
+            button.setTextColor(if (hasFocus) Color.WHITE else TEXT)
+            view.animate().scaleX(if (hasFocus) 1.065f else 1f)
+                .scaleY(if (hasFocus) 1.065f else 1f).setDuration(145).start()
+            view.elevation = if (hasFocus) context.dp(12).toFloat() else 0f
         }
         button.setOnClickListener { onClick() }
         return button
