@@ -66,6 +66,9 @@ class LiveTvActivity : Activity() {
                 "Importierte HTTPS-Senderstreams verwenden den integrierten Player.",
             13f, Ui.MUTED), Ui.lp(-1, dp(51)))
 
+        root.addView(Ui.button(this, "▤  Xtream Codes (eigener Zugang)", true) {
+            startActivity(Intent(this, XtreamActivity::class.java))
+        }, Ui.lp(dp(340), dp(44)))
         root.addView(Ui.button(this, "⌕  Alle IPTV-Quellen durchsuchen", true) {
             startActivity(Intent(this, UnifiedSearchActivity::class.java))
         }, Ui.lp(dp(340), dp(44)))
