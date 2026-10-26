@@ -398,16 +398,12 @@ class MainActivity : Activity() {
                 }
             } ?: throw IllegalArgumentException("Datei konnte nicht geöffnet werden.")
             val preview = SiteListImporter.parse(out.toString(Charsets.UTF_8.name()), filename)
-            val examples = preview.entries.take(4).joinToString("
-") { "• ${it.name} (${it.section.label})" }
+            val examples = preview.entries.take(4).joinToString("\n") { "• ${it.name} (${it.section.label})" }
             AlertDialog.Builder(this)
                 .setTitle("Webseitenliste importieren")
                 .setMessage("${preview.entries.size} gültige Einträge, ${preview.invalid} ungültig, " +
-                    "${preview.repeated} doppelte Einträge innerhalb der Datei.
-
-$examples
-
-" +
+                    "${preview.repeated} doppelte Einträge innerhalb der Datei.\n\n" +
+                    "$examples\n\n" +
                     "Vorhandene Seiten, Links und Favoriten bleiben erhalten. " +
                     "Leere Platzhalter können ergänzt werden.")
                 .setPositiveButton("Importieren") { _, _ ->
