@@ -55,6 +55,9 @@ class LiveTvActivity : Activity() {
         header.addView(Ui.button(this, "📡 MAC IPTV", true) {
             startActivity(Intent(this, MacPortalActivity::class.java))
         }, Ui.lp(dp(156), dp(44)).apply { rightMargin = dp(9) })
+        header.addView(Ui.button(this, "📅 EPG", true) {
+            startActivity(Intent(this, EpgActivity::class.java))
+        }, Ui.lp(dp(105), dp(44)).apply { rightMargin = dp(8) })
         header.addView(Ui.button(this, "← Zurück", true) { finish() },
             Ui.lp(dp(132), dp(44)))
         root.addView(header, Ui.lp(-1, dp(65)))
@@ -63,6 +66,9 @@ class LiveTvActivity : Activity() {
                 "Importierte HTTPS-Senderstreams verwenden den integrierten Player.",
             13f, Ui.MUTED), Ui.lp(-1, dp(51)))
 
+        root.addView(Ui.button(this, "⌕  Alle IPTV-Quellen durchsuchen", true) {
+            startActivity(Intent(this, UnifiedSearchActivity::class.java))
+        }, Ui.lp(dp(340), dp(44)))
         root.addView(Ui.text(this, "OFFIZIELLE LIVE-TV-WEBSITES", 16f, Ui.TEXT, true),
             Ui.lp(-1, dp(38)))
         val webScroll = HorizontalScrollView(this).apply {
