@@ -124,7 +124,7 @@ class MainActivity : Activity() {
             navColumn.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
             if (choice == tab) firstNav[0] = entry
         }
-        sidebar.addView(Ui.text(this, "STREAMHUB  1.8", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "STREAMHUB  1.9", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
         sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
         val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }
@@ -730,7 +730,12 @@ class MainActivity : Activity() {
             return
         }
         store.addVisit(name, url)
-        startActivity(Intent(this, BrowserActivity::class.java).apply {
+        val uri = Uri.parse(url)
+        val isDeVideoPlayer = uri.scheme == "https" && uri.host == "devideosrc.co" &&
+            (uri.path?.startsWith("/movie/") == true || uri.path?.startsWith("/serial/") == true ||
+             uri.path?.startsWith("/custom/") == true)
+        startActivity(Intent(this, if (isDeVideoPlayer) DeVideoPlayerActivity::class.java
+            else BrowserActivity::class.java).apply {
             putExtra("name", name)
             putExtra("url", url)
         })
