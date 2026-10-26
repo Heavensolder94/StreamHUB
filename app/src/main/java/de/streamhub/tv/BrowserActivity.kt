@@ -425,7 +425,12 @@ class BrowserActivity : Activity() {
                 previousShadow = node.style.boxShadow;
                 node.style.outline = '4px solid #58D9FF';
                 node.style.boxShadow = '0 0 0 3px #FFFFFF, 0 0 24px #0DA7FF';
-                if (node.focus) node.focus({preventScroll:true});
+                var tag = node.tagName.toLowerCase();
+                // Do not pop up Android's software keyboard while just browsing.
+                if (node.focus && tag !== 'input' && tag !== 'textarea' &&
+                    tag !== 'select' && !node.isContentEditable) {
+                  node.focus({preventScroll:true});
+                }
                 node.scrollIntoView({block:'nearest',inline:'nearest'});
                 return (node.innerText || node.getAttribute('aria-label') ||
                   node.getAttribute('title') || node.value || node.tagName || ''
