@@ -37,6 +37,7 @@ class NativeHubActivity : Activity() {
     private val tmdb by lazy { TmdbClient(this) }
     private val watch by lazy { WatchStateStore(this) }
     private val sites by lazy { SiteStore(this) }
+    private val covers by lazy { WebsiteCovers(this) }
     private val io = Executors.newSingleThreadExecutor()
     private val resolving = AtomicBoolean(false)
     private var page = Page.HOME
@@ -376,6 +377,22 @@ class NativeHubActivity : Activity() {
             nativeGrid(matches.distinctBy { it.kind + "|" +
                 NativeSourceIndex.normalized(it.title) }, 48)
         } else text("Keine Treffer im derzeit geladenen IPTV-Ausschnitt.", 13f, Ui.MUTED)
+        val webHits = sites.sites().asSequence()
+            .filter { SourceSearchRouter.validHomepage(it) != null }
+            .flatMap { site ->
+                covers.cachedPreview(site)?.entries.orEmpty().asSequence()
+                    .filter { NativeSourceIndex.normalized(it.title).contains(query) }
+                    .map { site to it }
+            }.take(16).toList()
+        if (webHits.isNotEmpty()) {
+            section("Öffentliche Webseiten-Vorschauen · kein bestätigter Stream")
+            webHits.forEach { (site, preview) ->
+                content.addView(Ui.button(this,
+                    "↗ " + preview.title.take(74) + " · " + site.name, true) {
+                    openPreview(site, preview)
+                }, Ui.lp(-1, dp(52)).apply { bottomMargin = dp(8) })
+            }
+        }
         if (tmdb.hasCredential()) tmdbShelf(
             "Titel aus TMDB", "/search/multi", "",
             mapOf("query" to searchText, "include_adult" to "false"))
@@ -418,6 +435,19 @@ class NativeHubActivity : Activity() {
         val list = sites.sites().filter { SourceSearchRouter.validHomepage(it) != null }
             .sortedWith(compareByDescending<Site> { it.favorite }
                 .thenBy { it.section.ordinal }.thenBy { it.name })
+        section("Öffentliche Cover-Vorschauen")
+        val previews = Ui.vertical(this)
+        content.addView(previews)
+        val already = list.flatMap { site ->
+            covers.cachedPreview(site)?.entries.orEmpty().map { site to it }
+        }.take(20)
+        if (already.isNotEmpty()) showWebPreviews(previews, already)
+        previews.addView(Ui.button(this, "↻  Webseiten-Vorschauen aktualisieren", true) {
+            fetchWebPreviews(previews, list.take(6))
+        }, Ui.lp(dp(315), dp(49)).apply { bottomMargin = dp(18) })
+        text("Cover stammen aus öffentlich sichtbaren Seiten-Metadaten; " +
+            "es findet keine automatische Stream-Extraktion statt.",
+            12f, Ui.MUTED, 69)
         for (group in list.groupBy { it.section }) {
             section(group.key.label)
             group.value.chunked(4).forEach { chunk ->
@@ -438,6 +468,90 @@ class NativeHubActivity : Activity() {
                 content.addView(row, Ui.lp(-1, dp(177)))
             }
         }
+    }
+
+    private fun fetchWebPreviews(host: LinearLayout, selections: List<Site>) {
+        host.removeAllViews()
+        host.addView(Ui.text(this, "Lade öffentliche Cover-Vorschauen …", 13f, Ui.SOFT),
+            Ui.lp(-1, dp(54)))
+        if (selections.isEmpty()) return
+        val request = generation
+        val gathered = mutableListOf<Pair<Site, DiscoveredCover>>()
+        var remaining = selections.size
+        selections.forEach { site ->
+            covers.request(site) { result ->
+                if (request != generation || isDestroyed || isFinishing) return@request
+                gathered.addAll(result.entries.take(8).map { site to it })
+                remaining--
+                if (remaining == 0) {
+                    host.removeAllViews()
+                    val found = gathered.distinctBy { it.second.pageUrl }.take(24)
+                    if (found.isNotEmpty()) showWebPreviews(host, found)
+                    else host.addView(Ui.text(this,
+                        "Diese Seiten haben keine unterstützten öffentlichen Coverdaten geliefert.",
+                        13f, Ui.MUTED), Ui.lp(-1, dp(66)))
+                    host.addView(Ui.button(this, "↻ Erneut prüfen", true) {
+                        fetchWebPreviews(host, selections)
+                    }, Ui.lp(dp(215), dp(48)).apply { bottomMargin = dp(14) })
+                }
+            }
+        }
+    }
+
+    private fun showWebPreviews(
+        host: LinearLayout, items: List<Pair<Site, DiscoveredCover>>
+    ) {
+        val rail = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            isFocusable = false
+            clipToPadding = false
+        }
+        val row = Ui.horizontal(this).apply {
+            setPadding(dp(5), dp(7), dp(6), dp(15))
+            clipChildren = false
+            clipToPadding = false
+        }
+        items.take(24).forEach { (site, preview) ->
+            val card = FrameLayout(this).apply {
+                background = Ui.bg(Ui.PANEL, 13f, context = this@NativeHubActivity)
+            }
+            card.addView(CinematicArtwork(this, preview.title, site.section.label),
+                FrameLayout.LayoutParams(-1, -1))
+            val image = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+            }
+            card.addView(image, FrameLayout.LayoutParams(-1, -1))
+            covers.loadInto(image, preview.imageUrl)
+            card.addView(View(this).apply {
+                background = Ui.gradient(this@NativeHubActivity,
+                    intArrayOf(0x150A0F1D, 0xDD090E19.toInt()),
+                    13f, GradientDrawable.Orientation.TOP_BOTTOM)
+            }, FrameLayout.LayoutParams(-1, -1))
+            val labels = Ui.vertical(this).apply {
+                setPadding(dp(9), dp(7), dp(9), dp(10))
+            }
+            labels.addView(Ui.text(this, preview.title, 15f, Ui.TEXT, true).apply {
+                maxLines = 2
+                ellipsize = TextUtils.TruncateAt.END
+            }, Ui.lp(-1, dp(51)))
+            labels.addView(Ui.text(this, "↗ " + site.name + " · WEB", 10f, Ui.FOCUS),
+                Ui.lp(-1, dp(26)))
+            card.addView(labels, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
+            Ui.focusCard(card, 13f)
+            card.setOnClickListener { openPreview(site, preview) }
+            row.addView(card, Ui.lp(dp(159), dp(228)).apply { rightMargin = dp(13) })
+        }
+        rail.addView(row)
+        host.addView(rail, Ui.lp(-1, dp(262)))
+    }
+
+    private fun openPreview(site: Site, preview: DiscoveredCover) {
+        sites.addVisit(site.name, preview.pageUrl)
+        startActivity(Intent(this, BrowserActivity::class.java).apply {
+            putExtra("name", preview.title.take(100))
+            putExtra("url", preview.pageUrl)
+            putExtra("site_id", site.id)
+        })
     }
 
     private fun webCard(site: Site): View {
@@ -905,6 +1019,7 @@ class NativeHubActivity : Activity() {
     override fun onDestroy() {
         updater.shutdown()
         tmdb.close()
+        covers.shutdown()
         io.shutdownNow()
         super.onDestroy()
     }
