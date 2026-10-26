@@ -75,8 +75,11 @@ class MediaLibraryActivity : Activity() {
         val brand = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
         brand.addView(Ui.text(this, "▶  STREAMHUB", 24f, Ui.TEXT, true),
             Ui.lp(dp(235), dp(53)))
-        brand.addView(Ui.text(this, "PREMIUM  ·  BIBLIOTHEK 2.3", 12f, Ui.BLUE, true),
+        brand.addView(Ui.text(this, "PREMIUM  ·  BIBLIOTHEK 2.4", 12f, Ui.BLUE, true),
             LinearLayout.LayoutParams(0, dp(53), 1f))
+        brand.addView(Ui.button(this, "📺  LIVE TV", true) {
+            startActivity(Intent(this, LiveTvActivity::class.java))
+        }, Ui.lp(-2, dp(43)).apply { rightMargin = dp(8) })
         brand.addView(Ui.button(this, "API-Key", true) { showKeyDialog() },
             Ui.lp(-2, dp(43)).apply { rightMargin = dp(8) })
         brand.addView(Ui.button(this, "Credits", true) { showCredits() },
