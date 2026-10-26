@@ -235,6 +235,22 @@ class NativeHubActivity : Activity() {
             else text("Wiedergabeverlauf gespeichert · Über »Weiterschauen« erneut suchen.", 13f)
         }
         sourcesShelf()
+        val websitePreviews = sites.sites().asSequence()
+            .filter { SourceSearchRouter.validHomepage(it) != null }
+            .flatMap { site ->
+                covers.cachedPreview(site)?.entries.orEmpty().asSequence()
+                    .map { site to it }
+            }.take(12).toList()
+        if (websitePreviews.isNotEmpty()) {
+            section("Öffentliche Webquellen-Vorschauen · keine Streamgarantie")
+            val host = Ui.vertical(this)
+            content.addView(host)
+            showWebPreviews(host, websitePreviews)
+        } else {
+            content.addView(Ui.button(this, "◉  Webquellen nativ entdecken", true) {
+                showPage(Page.WEB)
+            }, Ui.lp(dp(310), dp(48)).apply { bottomMargin = dp(13) })
+        }
         if (tmdb.hasCredential()) {
             tmdbShelf("Beliebte Filme", "/movie/popular", "movie")
             tmdbShelf("Serien-Highlights", "/tv/popular", "tv")
