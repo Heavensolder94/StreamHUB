@@ -15,7 +15,7 @@ internal object SourceSearchRouter {
     fun validHomepage(site: Site): String? {
         val uri = runCatching { Uri.parse(site.url.trim()) }.getOrNull() ?: return null
         if (uri.scheme != "https") return null
-        if (uri.userInfo != null) return null
+        if (uri.encodedAuthority?.contains("@") == true) return null
         val hostname = uri.host?.lowercase(Locale.ROOT).orEmpty()
         if (!hostname.matches(Regex("^[a-z0-9-]+(\\.[a-z0-9-]+)+$"))) return null
         if (hostname.length > 253) return null
