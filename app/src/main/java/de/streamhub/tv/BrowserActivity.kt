@@ -295,6 +295,11 @@ class BrowserActivity : Activity() {
         ) { raw ->
             if (isDestroyed || isFinishing || !tvMode) return@evaluateJavascript
             val chosen = raw?.trim('"')?.replace("\\n", " ")?.take(65).orEmpty()
+            if (chosen == "__TOOLBAR__") {
+                tvModeButton.requestFocus()
+                focusHint.text = "Native TV-Leiste ausgewählt"
+                return@evaluateJavascript
+            }
             focusHint.text = if (chosen.isBlank() || chosen == "null")
                 "↑↓←→ Webseitenlinks wählen · OK öffnen"
             else "◉ " + chosen
@@ -311,6 +316,10 @@ class BrowserActivity : Activity() {
                 KeyEvent.KEYCODE_DPAD_RIGHT -> "right"
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> "activate"
                 else -> null
+            }
+            if (event.keyCode == KeyEvent.KEYCODE_MENU) {
+                tvModeButton.requestFocus()
+                return true
             }
             if (direction != null) {
                 if (direction == "activate") {
@@ -451,6 +460,10 @@ class BrowserActivity : Activity() {
                 });
                 if (best) return highlight(best);
                 if (direction === 'down' || direction === 'up') {
+                  if (direction === 'up' && window.scrollY <= 1) {
+                    clear();
+                    return '__TOOLBAR__';
+                  }
                   window.scrollBy(0, direction === 'down' ? 310 : -310);
                   clear();
                   return '';
