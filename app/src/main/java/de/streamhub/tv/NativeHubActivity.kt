@@ -919,9 +919,10 @@ class NativeHubActivity : Activity() {
                         client.url(offer.xtream), offer.title, offer.kind,
                         account.allowHttp, offer.key)
                 } else if (offer.mac != null) {
-                    val profile = MacPortalStore(this).profiles()
-                        .firstOrNull { it.id == offer.profileId }
-                        ?: error("MAC-Profil wurde entfernt.")
+                    val profile = MacPortalStore(this).active()
+                        ?.takeIf { it.id == offer.profileId }
+                        ?: error("Dieses MAC-Profil ist nicht mehr aktiv. " +
+                            "Bitte aktiviere es in der Profilverwaltung.")
                     val client = MacPortalClient(profile.source)
                     client.connect()
                     if (offer.mac.type == "series") {
