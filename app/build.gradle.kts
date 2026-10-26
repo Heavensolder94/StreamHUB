@@ -11,8 +11,8 @@ android {
         applicationId = "de.streamhub.tv"
         minSdk = 23
         targetSdk = 35
-        versionCode = 17
-        versionName = "2.6.0"
+        versionCode = 18
+        versionName = "2.7.0"
     }
 
     compileOptions {
