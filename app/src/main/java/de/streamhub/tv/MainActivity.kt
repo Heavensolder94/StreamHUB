@@ -44,6 +44,7 @@ class MainActivity : Activity() {
     }
 
     private val store by lazy { SiteStore(this) }
+    private val updater by lazy { GithubUpdateManager(this) }
     private val covers by lazy { WebsiteCovers(this) }
     private var forceCoverRefresh = false
     private var tab = Tab.HOME
@@ -58,6 +59,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
         showTab(Tab.HOME)
+        updater.check(manual = false)
     }
 
     override fun onResume() {
@@ -130,7 +132,7 @@ class MainActivity : Activity() {
             navColumn.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
             if (choice == tab) firstNav[0] = entry
         }
-        sidebar.addView(Ui.text(this, "STREAMHUB  2.6", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "STREAMHUB  ${packageManager.getPackageInfo(packageName, 0).versionName}", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
         sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
         val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }
@@ -537,6 +539,9 @@ class MainActivity : Activity() {
     }
 
     private fun renderManage(into: LinearLayout) {
+        into.addView(Ui.button(this, "↻  Nach App-Updates suchen", true) {
+            updater.check(manual = true)
+        }, Ui.lp(dp(260), dp(48)).apply { bottomMargin = dp(17) })
         val top = Ui.horizontal(this)
         top.addView(Ui.button(this, "↓ Liste importieren", true) { pickImportFile() },
             Ui.lp(dp(205), dp(48)).apply { rightMargin = dp(12) })
@@ -689,6 +694,7 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         checker.shutdownNow()
         covers.shutdown()
+        updater.shutdown()
         super.onDestroy()
     }
 
