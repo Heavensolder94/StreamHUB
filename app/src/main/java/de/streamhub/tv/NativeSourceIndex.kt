@@ -62,7 +62,9 @@ internal object NativeSourceIndex {
         val app = context.applicationContext
         val selected = MacPortalStore(app).active()
         val xtream = XtreamStore(app).load()
-        val signature = listOf(
+        val channelSignature = LiveTvCatalog(app).channels()
+            .joinToString("|") { it.id + ":" + it.url }.hashCode().toString()
+        val signature = listOf(channelSignature,
             selected?.id.orEmpty(), selected?.source?.url.orEmpty(),
             selected?.source?.mac.orEmpty(), xtream?.server.orEmpty(),
             xtream?.username.orEmpty(), xtream?.password.orEmpty()
