@@ -79,6 +79,9 @@ internal class WebsiteCovers(context: Context) {
         }.getOrDefault("").takeIf { validPublicHttps(it) } ?: ""
     }
 
+    /** Safe, no-network lookup for native StreamHUB discovery/search screens. */
+    fun cachedPreview(site: Site): SiteCovers? = cached(site)
+
     private fun cached(site: Site): SiteCovers? = runCatching {
         val raw = prefs.getString(key(site), null) ?: return null
         val o = JSONObject(raw)
