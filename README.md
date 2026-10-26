@@ -1,3 +1,18 @@
+# StreamHUB Premium V2.6 — Mehrere MAC-IPTV-Profile
+
+In **LIVE TV → MAC IPTV → ⚙ Profile** können mehrere eigene, autorisierte MAG-/Stalker-Portale verwaltet werden.
+
+- Bis zu **30 Profile** mit eigenem Namen, Portal-URL, MAC und optionaler HTTP-Freigabe.
+- Jedes Profil unabhängig **hinzufügen, bearbeiten, aktivieren/deaktivieren oder gezielt löschen**. Immer nur **ein Profil ist aktiv**; inaktive bleiben gespeichert und werden nicht abgefragt.
+- **Neues Profil** kann inaktiv gespeichert werden. Beim Aktivieren lädt StreamHUB Live TV, Film- und Serienkategorien aus diesem Portal. Andere Profile bleiben unberührt.
+- Portal-URLs und MAC-Adressen werden lokal via **Android Keystore / AES-GCM** verschlüsselt. Die Profilübersicht zeigt die MAC nur gekürzt.
+- Ein bereits in V2.5 gespeichertes Einzelportal wird **automatisch** zu „Mein bisheriges Portal“ migriert, inklusive bisheriger Aktivierung. Die Migration löscht keine Zugangsdaten, solange die verschlüsselte Übernahme nicht erfolgreich abgeschlossen wurde.
+- Kein Kodi benötigt. Die Wiedergabe bleibt beim nativen Android-TV-Player. Die Portale selbst müssen vom jeweiligen Anbieter freigeschaltet sein.
+
+**APK herunterladen:** GitHub Actions → Build Android TV APK → erfolgreicher Lauf → Artifacts → `StreamHub-Premium-V2.6-debug-apk`.
+
+---
+
 # StreamHUB Premium V2.5 — MAC-IPTV / Stalker-Portal
 
 Der vorhandene native LIVE-TV-Bereich hat zusätzlich den Button 📡 MAC IPTV. Dieser öffnet einen Kodi-unabhängigen Client für vom Nutzer bereitgestellte, autorisierte MAG-/Stalker-/Ministra-Portale. Der Rest der App bleibt unverändert.
