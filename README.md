@@ -1,3 +1,30 @@
+# StreamHUB Premium V2.0 — Film- und Serienbibliothek
+
+## Neu
+- **Eigenständige Bibliothek** aus dem Hauptmenü und Hero der TV-App.
+- Echte Film- und Serienposter, Backdrops, deutsche Titel/Beschreibungen und Bewertungen über die offizielle **TMDB API** und TMDB Bild-CDN. Keine erfundenen Poster.
+- **Startseite:** Kino-Highlights dieser Woche, beliebte Serien, Anime-Kategorie (japanische Animationsserien). **Filme**, **Serien**, **Anime**, **Suche**, **Meine Liste** als TV-optimierte Ansichten.
+- **Detailseiten:** Original-Backdrop, Handlung, Erscheinungsjahr, TMDB-Bewertung, Laufzeit/Genre (soweit vorhanden), IMDb-Zuordnung aus TMDB, Merkliste und Wiedergabeoptionen.
+- **Player-Auswahl:** Bei hinterlegter IMDb-ID DeVideoSRC Standard-/Custom-Player für Filme, Serienplayer oder direkte Serienepisode. Alternativ jede bereits gespeicherte Webseite nur als **Link zur Homepage** oder TMDB-Titelseite. Der Player wird nicht zur Garantie für einen verfügbaren/lizenzierten Stream.
+- **Merkliste** mit bis zu 200 lokalen Einträgen. Kein Konto, Cloud-Sync oder Nutzertracking; unabhängig von der alten Webseiten-Favoritenliste.
+- **TMDB API-Key** (32 Zeichen v3) oder **Read Access Token** kann in der App eingegeben werden. Kein Schlüssel wird ins GitHub-Repository eingebaut oder benötigt. Auf dem Gerät in app-privaten SharedPreferences gespeichert (nicht speziell verschlüsselt, also nur private TV-Box verwenden).
+- Bilder werden nur vom offiziellen TMDB CDN bezogen, mit Größenprüfung und begrenztem RAM-Cache. API-Anfragen laufen über HTTPS mit begrenzter Laufzeit und Antwortgröße.
+- **Credits** enthalten das offizielle TMDB-Logo und den vorgeschriebenen Wortlaut: "This product uses the TMDB API but is not endorsed or certified by TMDB."
+
+## Ersteinrichtung
+1. Im eigenen TMDB-Konto auf https://www.themoviedb.org/settings/api einen persönlichen API-Key/Read Access Token erstellen. Konditionen und TMDB-Nutzungsrechte beachten (kostenlos im nichtkommerziellen Rahmen mit Attribution).
+2. StreamHUB öffnen → **FILM-BIBLIOTHEK** → **TMDB API-Key einrichten** → Key/Token einfügen → speichern. Danach lädt die App echte Titel automatisch.
+3. Film- oder Serienposter wählen → Detailseite → Player wählen. Für einen DeVideoSRC-Player braucht der Titel eine IMDb-ID bei TMDB. Fehlt sie, wird nur die Webseiten-/TMDB-Auswahl angeboten.
+4. Android-APK: GitHub → Actions → Build Android TV APK → erfolgreicher Lauf → Artifacts → **StreamHub-Premium-V2.0-debug-apk** → ZIP entpacken → **app-debug.apk** auf Android-TV installieren.
+
+## Hinweise
+- Die App arbeitet **ohne eingebauten TMDB-Schlüssel**. Ohne eigenen Schlüssel bleibt der Katalog im Einrichtungsbildschirm. Das ist absichtlich so, damit kein privater API-Schlüssel im öffentlichen Repo landet.
+- Eine TMDB-Liste liefert **Metadaten, nicht Filmdateien oder Streamingrechte**. Nicht jeder Titel hat eine IMDb-ID. Wiedergabe und Remote-/Fullscreen-Support von Drittanbietern sind auf der Xiaomi-TV-Box noch **nicht live getestet**.
+- TMDB verlangt im Produktionsbetrieb eine korrekte Attribution/Logo. Logo wird im Credits-Fenster von der offiziellen TMDB-Seite geladen; es kann offline fehlen.
+- Die Debug-APK ist nur für private Funktionstests; bei anderem Debug-Signierschlüssel kann Android für ein Update eine Neuinstallation verlangen (dabei lokale Daten sichern).
+
+---
+
 # StreamHub Premium V1.9 — Erweiterte DeVideoSRC-Integration
 
 - Dedizierter Android-TV-Player mit iframe-Integration, Play/Pause/Seek, Info zur Quelle und lokal gespeichertem Wiedergabefortschritt.
