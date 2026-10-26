@@ -376,7 +376,7 @@ class MainActivity : Activity() {
         host.ellipsize = android.text.TextUtils.TruncateAt.END
         details.addView(host, Ui.lp(-1, dp(22)))
         details.addView(Ui.text(this,
-            if (site.url.isBlank()) "＋  ADRESSE HINZUFÜGEN" else "▶  JETZT ÖFFNEN",
+            if (site.url.isBlank()) "＋  ADRESSE HINZUFÜGEN" else "▶  IM STREAMHUB ÖFFNEN",
             11f, if (site.url.isBlank()) 0xFFFFCC91.toInt() else Ui.BLUE, true),
             Ui.lp(-1, dp(24)))
         card.addView(details, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
