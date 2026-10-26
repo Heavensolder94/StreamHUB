@@ -32,6 +32,7 @@ class MainActivity : Activity() {
     private enum class Tab(val label: String, val heading: String) {
         HOME("Startseite", "Deine Streaming-Zentrale"),
         COVERS("Cover entdecken", "Film- und Anime-Cover aus deinen Webseiten"),
+        PLAYER("DeVideoSRC", "Filme und Serien direkt öffnen"),
         SEARCH("Suche", "Webseiten durchsuchen"),
         ANIME("Anime", "Anime-Webseiten"),
         FILME("Filme", "Film-Webseiten"),
@@ -88,10 +89,19 @@ class MainActivity : Activity() {
             Ui.lp(-1, dp(31)))
 
         val navs = listOf(
-            Tab.HOME to "⌂", Tab.COVERS to "▧", Tab.SEARCH to "⌕", Tab.ANIME to "✦",
+            Tab.HOME to "⌂", Tab.COVERS to "▧", Tab.PLAYER to "▶", Tab.SEARCH to "⌕", Tab.ANIME to "✦",
             Tab.FILME to "▣", Tab.SERIEN to "▤", Tab.MIX to "◈",
             Tab.FAVORITES to "♥", Tab.HISTORY to "↺", Tab.MANAGE to "⚙"
         )
+        // Keep all sidebar entries reachable on smaller Android TV screens.
+        val navScroll = ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            isFocusable = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
+        val navColumn = Ui.vertical(this)
+        navScroll.addView(navColumn)
+        sidebar.addView(navScroll, LinearLayout.LayoutParams(-1, 0, 1f))
         val firstNav = arrayOfNulls<View>(1)
         navs.forEach { (choice, symbol) ->
             val selected = choice == tab
@@ -111,11 +121,10 @@ class MainActivity : Activity() {
                     .scaleY(if (focused) 1.045f else 1f).setDuration(145).start()
             }
             entry.setOnClickListener { showTab(choice) }
-            sidebar.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
+            navColumn.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
             if (choice == tab) firstNav[0] = entry
         }
-        sidebar.addView(View(this), LinearLayout.LayoutParams(1, 0, 1f))
-        sidebar.addView(Ui.text(this, "STREAMHUB  1.7", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "STREAMHUB  1.8", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
         sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
         val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }
@@ -142,6 +151,7 @@ class MainActivity : Activity() {
         when(tab) {
             Tab.HOME -> renderHome(content)
             Tab.COVERS -> renderCoverDiscovery(content)
+            Tab.PLAYER -> DeVideoSrcPanel(this) { name, url -> launchBrowser(name, url) }.render(content)
             Tab.SEARCH -> renderSearch(content)
             Tab.ANIME -> renderGrid(content, store.sites().filter { it.section == Section.ANIME })
             Tab.FILME -> renderGrid(content, store.sites().filter { it.section == Section.FILME })
@@ -157,6 +167,7 @@ class MainActivity : Activity() {
     private fun subtitle(): String = when(tab) {
         Tab.HOME -> "Alles an einem Ort. Für deinen Fernseher."
         Tab.COVERS -> "Öffentlich sichtbare Poster aus allen gespeicherten Webseiten mit Adresse."
+        Tab.PLAYER -> "IMDb-ID oder DeVideoSRC-ID eingeben und im StreamHUB-Player öffnen."
         Tab.SEARCH -> "Finde deine Lieblingsportale und gespeicherte Webseiten."
         Tab.MANAGE -> "Webseiten verwalten, prüfen und Listen importieren."
         Tab.HISTORY -> "Zuletzt geöffnete Seiten auf diesem Gerät."
@@ -192,7 +203,9 @@ class MainActivity : Activity() {
         heroActions.addView(Ui.button(this, "▶  ANIME ENTDECKEN", true) { showTab(Tab.ANIME) },
             Ui.lp(dp(194), dp(41)).apply { rightMargin = dp(9) })
         heroActions.addView(Ui.button(this, "▧  COVER", true) { showTab(Tab.COVERS) },
-            Ui.lp(dp(150), dp(41)))
+            Ui.lp(dp(150), dp(41)).apply { rightMargin = dp(9) })
+        heroActions.addView(Ui.button(this, "▶  DEVIDEOSRC", true) { showTab(Tab.PLAYER) },
+            Ui.lp(dp(163), dp(41)))
         heroContent.addView(heroActions, Ui.lp(-1, dp(47)))
         hero.addView(heroContent, FrameLayout.LayoutParams(-1, -1))
         into.addView(hero, Ui.lp(-1, dp(250)).apply { bottomMargin = dp(24) })
