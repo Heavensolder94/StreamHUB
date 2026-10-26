@@ -28,6 +28,10 @@ class LiveTvPlayerActivity : Activity() {
     private lateinit var status: TextView
     private val catalog by lazy { LiveTvCatalog(this) }
     private var currentChannelId = ""
+    private var directUrl = ""
+    private var directTitle = ""
+    private var directIsLive = false
+    private var allowDirectHttp = false
     private var channels: List<LiveChannel> = emptyList()
     private fun dp(n: Int) = (resources.displayMetrics.density * n + 0.5f).toInt()
 
@@ -36,6 +40,10 @@ class LiveTvPlayerActivity : Activity() {
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         currentChannelId = intent.getStringExtra("channel_id").orEmpty()
+        directUrl = intent.getStringExtra("direct_stream_url").orEmpty()
+        directTitle = intent.getStringExtra("direct_stream_title").orEmpty()
+        directIsLive = intent.getBooleanExtra("direct_stream_is_live", false)
+        allowDirectHttp = intent.getBooleanExtra("direct_allow_http", false)
         val root = Ui.vertical(this).apply { setBackgroundColor(Color.BLACK) }
         val header = Ui.horizontal(this).apply {
             gravity = Gravity.CENTER_VERTICAL
@@ -72,27 +80,40 @@ class LiveTvPlayerActivity : Activity() {
     override fun onStart() {
         super.onStart()
         channels = catalog.channels()
-        if (channels.isEmpty()) {
+        if (directUrl.isBlank() && channels.isEmpty()) {
             status.text = "Keine Sender eingerichtet."
             return
         }
-        val stream = channels.find { it.id == currentChannelId } ?: channels.first()
         val instance = ExoPlayer.Builder(this).build()
         player = instance
         view.player = instance
         instance.addListener(object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
-                status.text = "Sender nicht abspielbar: " + error.errorCodeName +
+                status.text = "Stream nicht abspielbar: " + error.errorCodeName +
                     ". Prüfe die Stream-Adresse oder Rechte."
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY)
-                    status.text = "● LIVE · " + (channels.find { it.id == currentChannelId }?.group ?: "TV")
+                    status.text = if (directUrl.isNotBlank()) {
+                        if (directIsLive) "● LIVE · MAC IPTV" else "▶ Video on Demand · MAC IPTV"
+                    } else "● LIVE · " + (channels.find { it.id == currentChannelId }?.group ?: "TV")
                 else if (playbackState == Player.STATE_BUFFERING)
                     status.text = "Verbinde mit Livestream …"
             }
         })
-        play(stream)
+        if (directUrl.isNotBlank()) {
+            val acceptable = directUrl.startsWith("https://") ||
+                (allowDirectHttp && directUrl.startsWith("http://"))
+            if (!acceptable || Uri.parse(directUrl).host.isNullOrBlank()) {
+                status.text = "Ungültiger oder nicht freigegebener Stream-Link."
+                return
+            }
+            nowPlaying.text = "▶  " + directTitle.ifBlank { "IPTV Stream" }
+            playUri(directUrl)
+        } else {
+            val stream = channels.find { it.id == currentChannelId } ?: channels.first()
+            play(stream)
+        }
     }
 
     private fun play(channel: LiveChannel) {
@@ -103,7 +124,11 @@ class LiveTvPlayerActivity : Activity() {
         currentChannelId = channel.id
         nowPlaying.text = "●  " + channel.name
         status.text = "Sender wird geladen …"
-        val mediaUri = Uri.parse(channel.url)
+        playUri(channel.url)
+    }
+
+    private fun playUri(url: String) {
+        val mediaUri = Uri.parse(url)
         val path = mediaUri.path.orEmpty().lowercase(java.util.Locale.ROOT)
         val item = MediaItem.Builder().setUri(mediaUri).apply {
             if (path.endsWith(".m3u8")) setMimeType(MimeTypes.APPLICATION_M3U8)
@@ -117,7 +142,7 @@ class LiveTvPlayerActivity : Activity() {
     }
 
     private fun switchChannel(change: Int) {
-        if (channels.isEmpty()) return
+        if (directUrl.isNotBlank() || channels.isEmpty()) return
         val idx = channels.indexOfFirst { it.id == currentChannelId }.coerceAtLeast(0)
         val next = (idx + change + channels.size) % channels.size
         play(channels[next])
