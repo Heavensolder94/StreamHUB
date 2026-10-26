@@ -13,6 +13,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.security.KeyStore
 import java.util.Locale
+import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -47,7 +48,30 @@ internal data class MacPortalSource(val url: String, val mac: String, val allowH
     }
 }
 
-/** Saves the provider configuration encrypted using a device-local Android Keystore key. */
+/** A named, saved portal/MAC pair; only one profile is active at a time. */
+internal data class MacPortalProfile(
+    val id: String,
+    val name: String,
+    val source: MacPortalSource
+) {
+    fun json(): JSONObject = JSONObject()
+        .put("id", id).put("name", name).put("url", source.url)
+        .put("mac", source.mac).put("allowHttp", source.allowHttp)
+
+    companion object {
+        fun fromJson(obj: JSONObject): MacPortalProfile = MacPortalProfile(
+            obj.getString("id"),
+            obj.getString("name"),
+            MacPortalSource.fromInput(obj.getString("url"), obj.getString("mac"),
+                obj.optBoolean("allowHttp", false))
+        )
+    }
+}
+
+/**
+ * Encrypted, device-local portal profile manager.
+ * Migrates the V2.5 single "source" entry without discarding existing credentials.
+ */
 internal class MacPortalStore(context: Context) {
     private val prefs = context.getSharedPreferences("streamhub_mac_portal", Context.MODE_PRIVATE)
     private val alias = "streamhub_mac_portal_aes_v1"
@@ -65,27 +89,107 @@ internal class MacPortalStore(context: Context) {
         return generator.generateKey()
     }
 
-    fun save(source: MacPortalSource) {
-        val payload = JSONObject().put("url", source.url).put("mac", source.mac)
-            .put("allowHttp", source.allowHttp).toString().toByteArray(Charsets.UTF_8)
+    private fun encrypt(json: JSONObject): String {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key())
-        val bytes = cipher.iv + cipher.doFinal(payload)
-        prefs.edit().putString("source", Base64.encodeToString(bytes, Base64.NO_WRAP)).apply()
+        val bytes = cipher.iv + cipher.doFinal(json.toString().toByteArray(Charsets.UTF_8))
+        return Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
 
-    fun load(): MacPortalSource? = runCatching {
-        val encoded = prefs.getString("source", null) ?: return null
-        val bytes = Base64.decode(encoded, Base64.DEFAULT)
-        require(bytes.size >= 29)
+    private fun decrypt(value: String): JSONObject {
+        val bytes = Base64.decode(value, Base64.DEFAULT)
+        require(bytes.size >= 29) { "Gespeicherte Portaldaten sind ungültig." }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
-        val json = JSONObject(String(cipher.doFinal(bytes.copyOfRange(12, bytes.size)), Charsets.UTF_8))
-        MacPortalSource.fromInput(json.getString("url"), json.getString("mac"),
-            json.optBoolean("allowHttp", false))
-    }.getOrNull()
+        cipher.init(Cipher.DECRYPT_MODE, key(),
+            GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
+        return JSONObject(String(cipher.doFinal(bytes.copyOfRange(12, bytes.size)),
+            Charsets.UTF_8))
+    }
 
-    fun remove() { prefs.edit().remove("source").apply() }
+    private fun persist(doc: JSONObject) {
+        check(prefs.edit().putString("profiles", encrypt(doc)).remove("source").commit()) {
+            "Portalprofile konnten nicht gespeichert werden."
+        }
+    }
+
+    private fun document(): JSONObject {
+        prefs.getString("profiles", null)?.let { return decrypt(it) }
+        val doc = JSONObject().put("activeId", "").put("profiles", JSONArray())
+        // First launch after 2.5: preserve the old portal and activate it.
+        prefs.getString("source", null)?.let { old ->
+            val json = decrypt(old)
+            val source = MacPortalSource.fromInput(
+                json.getString("url"), json.getString("mac"),
+                json.optBoolean("allowHttp", false))
+            val profile = MacPortalProfile(UUID.randomUUID().toString(),
+                "Mein bisheriges Portal", source)
+            doc.put("activeId", profile.id)
+            doc.getJSONArray("profiles").put(profile.json())
+            persist(doc)
+        }
+        return doc
+    }
+
+    private fun parse(doc: JSONObject): List<MacPortalProfile> {
+        val array = doc.getJSONArray("profiles")
+        return (0 until array.length()).map { MacPortalProfile.fromJson(array.getJSONObject(it)) }
+    }
+
+    fun profiles(): List<MacPortalProfile> = parse(document())
+
+    fun active(): MacPortalProfile? {
+        val doc = document()
+        val id = doc.optString("activeId")
+        return parse(doc).firstOrNull { it.id == id }
+    }
+
+    fun upsert(
+        name: String, source: MacPortalSource,
+        editingId: String? = null, activate: Boolean = false
+    ): MacPortalProfile {
+        val label = name.trim()
+        require(label.isNotBlank()) { "Bitte einen Profilnamen eingeben." }
+        require(label.length <= 55) { "Profilname darf höchstens 55 Zeichen haben." }
+        val doc = document()
+        val previous = parse(doc)
+        if (editingId != null) require(previous.any { it.id == editingId }) {
+            "Profil nicht mehr vorhanden."
+        }
+        if (editingId == null) require(previous.size < 30) {
+            "Maximal 30 Portalprofile möglich."
+        }
+        require(previous.none {
+            it.id != editingId && it.source.url.equals(source.url, ignoreCase = true) &&
+                it.source.mac.equals(source.mac, ignoreCase = true)
+        }) { "Diese Portal-URL/MAC-Kombination ist bereits gespeichert." }
+        val profile = MacPortalProfile(editingId ?: UUID.randomUUID().toString(), label, source)
+        val list = if (editingId == null) previous + profile
+            else previous.map { if (it.id == editingId) profile else it }
+        doc.put("profiles", JSONArray().also { arr -> list.forEach { arr.put(it.json()) } })
+        if (activate) doc.put("activeId", profile.id)
+        persist(doc)
+        return profile
+    }
+
+    /** A null id deactivates IPTV while keeping all saved profiles. */
+    fun activate(id: String?) {
+        val doc = document()
+        require(id == null || parse(doc).any { it.id == id }) {
+            "Dieses Profil existiert nicht."
+        }
+        doc.put("activeId", id ?: "")
+        persist(doc)
+    }
+
+    fun delete(id: String) {
+        val doc = document()
+        val remaining = parse(doc).filterNot { it.id == id }
+        doc.put("profiles", JSONArray().also { arr ->
+            remaining.forEach { arr.put(it.json()) }
+        })
+        if (doc.optString("activeId") == id) doc.put("activeId", "")
+        persist(doc)
+    }
 }
 
 internal data class MacPortalCategory(val id: String, val title: String)
