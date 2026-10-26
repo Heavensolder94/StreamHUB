@@ -5,13 +5,18 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.gamepad" android:required="false" />
 
+    <queries>
+        <package android:name="org.xbmc.kodi" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:label="StreamHub"
         android:icon="@drawable/ic_streamhub"
         android:banner="@drawable/tv_banner"
         android:theme="@style/Theme.StreamHub"
-        android:usesCleartextTraffic="false">
+        android:usesCleartextTraffic="false"
+        android:networkSecurityConfig="@xml/streamhub_network_security">
         <activity
             android:name=".MediaLibraryActivity"
             android:exported="false"

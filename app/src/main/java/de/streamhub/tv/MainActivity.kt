@@ -127,7 +127,7 @@ class MainActivity : Activity() {
             navColumn.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
             if (choice == tab) firstNav[0] = entry
         }
-        sidebar.addView(Ui.text(this, "STREAMHUB  2.1", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "STREAMHUB  2.2", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
         sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
         val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }

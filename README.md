@@ -1,3 +1,33 @@
+# StreamHUB Premium V2.2 – optionale Kodi/xVAULT-Brücke
+
+Diese Version ergänzt die eigenständige Android-TV-Filmbibliothek um einen separaten, optionalen **Kodi-Player über xVAULT**. Die APK enthält keine xVAULT-Python-Scraper und installiert xVAULT nicht: xVAULT bleibt im dafür vorgesehenen Kodi-Laufzeitsystem. Das Addon in der bereitgestellten ZIP deklariert GPL-3.0-only und verfügt über eigene Updates/Telemetrie/Synchronisation.
+
+## Warum nicht direkt einbauen?
+
+Das xVAULT-Addon ist ein Kodi-Python-Plugin (addon id: plugin.video.xvault). Es verwendet Kodi-spezifische Module, den Kodi-Player und zusätzliche Abhängigkeiten (u. a. ResolveURL und InputStream). Der Code kann daher nicht unverändert als eigenständige Kotlin-Android-App laufen.
+
+## Einrichtung auf derselben Android-TV-Box
+
+1. Kodi installieren und starten. xVAULT im Kodi-Addon-Menü separat aus der bereits vorhandenen ZIP oder einer vom Nutzer vertrauten Quelle installieren und aktivieren. StreamHUB installiert xVAULT nicht automatisch.
+2. In Kodi: **Einstellungen → Dienste → Steuerung → Fernsteuerung über HTTP zulassen**. Authentifizierung aktiv lassen, sicheren Benutzernamen und Passwort einstellen, den HTTP-Port merken (meist 8080). Den Kodi-HTTP-Port **nicht zum Internet weiterleiten** und keinen öffentlichen Remote-Zugriff einrichten. Für diesen Connector ist nur die Loopback-Adresse 127.0.0.1 auf **demselben Gerät** erreichbar.
+3. Kodi geöffnet lassen, bis der HTTP-Server läuft. StreamHUB → Film-Bibliothek → Titel auswählen → „Jetzt ansehen“ → „Player & Kodi/xVAULT“ → **Einrichten**; dort Port, Benutzer und Passwort eintragen. Einstellungen werden nur lokal auf dem Gerät gespeichert; das Passwort ist über den Android Keystore AES-GCM verschlüsselt.
+4. **Verbindung testen** prüft über Kodi-JSON-RPC, ob xVAULT vorhanden und aktiviert ist.
+5. **Über Kodi / xVAULT** übergibt den gewählten Film anhand der TMDB-ID, des Titels und optional der IMDb-ID. Bei einer Serie fragt StreamHUB zuerst Staffel und Episode ab. Die Übergabe verwendet die im geprüften xVAULT-Paket vorhandene TMDbHelper-kompatible Route `playTMDbHelper` über die dokumentierte Kodi-RPC-Methode `Addons.ExecuteAddon`. Danach öffnet StreamHUB Kodi, wo xVAULT seine eigene Quellenwahl durchführt.
+
+## Grenzen & Sicherheit
+
+- **Kein echtes In-App-xVAULT-Streaming:** Die Wiedergabe und Dialoge finden in Kodi statt. StreamHUB bleibt eigenständig; kein zweiter Filmdatenkatalog ist nötig. Für später wäre eine weitergehende, explizite Bridge nötig.
+- Der Webserver muss in Kodi laufen. Android kann Kodi im Hintergrund beenden. Die Kodi-HTTP- und Plugin-Kompatibilität kann erst beim Test auf dem konkreten Android-TV-Gerät nachgewiesen werden. Ein erfolgreiches APK-Compile ist kein Nachweis des Wiedergabeflusses.
+- Nur `127.0.0.1` wird angerufen; Authentifizierung und begrenzte Response-Größe/Timeouts, kein konfigurierbarer Remote-Host. Eine Android-Network-Security-Config erlaubt HTTP nur zu localhost / 127.0.0.1 und blockiert unsicheres HTTP sonst.
+- Nutzerdaten/Favoriten von Kodi/xVAULT werden **nicht automatisch** in StreamHUB kopiert oder synchronisiert. Es gibt keinerlei Zwang zu Drittanbieter-Synchronisation. Auf xVAULTs eigene Update-/Telemetrie-Einstellungen achten.
+- Es werden **keine Links automatisch extrahiert, keine Hosterrechte geprüft und keine Schutzmaßnahmen umgangen**. Der Benutzer ist verantwortlich, geeignete legale Quellen zu wählen.
+- Die ZIP-Datei wird **nicht redistribuiert**; xVAULT muss in Kodi separat installiert sein.
+- Bei Installation als Update bitte beachten, dass GitHub-Actions-Debug-Builds einen anderen Signaturschlüssel haben können. Vor Deinstallation lokale Merkliste/Settings beachten.
+
+**Download:** GitHub Actions → Build Android TV APK → Artifacts → StreamHub-Premium-V2.2-debug-apk → app-debug.apk.
+
+---
+
 # StreamHUB Premium V2.1 – Film auswählen, Anbieter auswählen
 
 **Neu:** Auf jeder Film- und Serien-Detailseite erscheinen unter dem Poster drei Quellenbereiche.

@@ -27,6 +27,9 @@ internal class TitleSourcesPanel(
     private val title: CatalogTitle,
     private val openPlayer: (String, Boolean) -> Unit,
     private val openEpisode: (String) -> Unit,
+    private val openXvault: (String) -> Unit,
+    private val configureKodi: () -> Unit,
+    private val testKodi: () -> Unit,
     private val openWebsite: (Site) -> Unit,
     private val openTmdbWatch: (String) -> Unit
 ) {
@@ -48,7 +51,7 @@ internal class TitleSourcesPanel(
             "Eine Streaming-Verfügbarkeit wird nur angezeigt, wenn TMDB/JustWatch " +
             "sie für Deutschland meldet.", 63)
 
-        heading(into, "1 · Integrierter Player")
+        heading(into, "1 · Player & Kodi/xVAULT")
         playerHost = Ui.vertical(activity)
         into.addView(playerHost)
         info(playerHost, "IMDb-Zuordnung wird geladen …", 49)
@@ -77,9 +80,25 @@ internal class TitleSourcesPanel(
     private fun renderPlayer() {
         playerHost.removeAllViews()
         val id = imdbId.orEmpty()
+        info(playerHost, "xVAULT nutzt die TMDB-ID aus diesem Filmkatalog. " +
+            "Kodi und das xVAULT-Addon müssen auf derselben TV-Box installiert sein.", 64)
+        val kodiRow = Ui.horizontal(activity)
+        kodiRow.addView(Ui.button(activity, "▶  Über Kodi / xVAULT", true) {
+            openXvault(id)
+        }, Ui.lp(dp(243), dp(48)).apply { rightMargin = dp(9) })
+        kodiRow.addView(Ui.button(activity, "Einrichten", true) {
+            configureKodi()
+        }, Ui.lp(dp(141), dp(48)).apply { rightMargin = dp(9) })
+        kodiRow.addView(Ui.button(activity, "Verbindung testen", true) {
+            testKodi()
+        }, Ui.lp(dp(191), dp(48)))
+        playerHost.addView(kodiRow, Ui.lp(-1, dp(65)))
+        info(playerHost, "xVAULT übernimmt die Quellenwahl in Kodi. " +
+            "Eine tatsächliche Wiedergabe ist nicht garantiert.", 51)
         if (id.isBlank()) {
-            info(playerHost, "Für diesen Titel ist keine IMDb-ID hinterlegt. " +
-                "Der direkte DeVideoSRC-Start ist nicht verfügbar.", 65)
+            info(playerHost, "Keine IMDb-ID in TMDB hinterlegt. " +
+                "DeVideoSRC ist deshalb für diesen Titel nicht direkt verfügbar; " +
+                "xVAULT kann die TMDB-ID trotzdem verwenden.", 72)
             return
         }
         info(playerHost, "DeVideoSRC · externer Embed-Player über IMDb-ID " + id +

@@ -29,6 +29,7 @@ import org.json.JSONObject
 class MediaLibraryActivity : Activity() {
     private enum class Page { HOME, MOVIES, SERIES, ANIME, SEARCH, WATCHLIST }
     private val client by lazy { TmdbClient(this) }
+    private val kodiBridge by lazy { KodiXvaultBridge(this) }
     private val saved by lazy { getSharedPreferences("streamhub_tmdb", MODE_PRIVATE) }
     private var page = Page.HOME
     private var detail: CatalogTitle? = null
@@ -74,7 +75,7 @@ class MediaLibraryActivity : Activity() {
         val brand = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
         brand.addView(Ui.text(this, "▶  STREAMHUB", 24f, Ui.TEXT, true),
             Ui.lp(dp(235), dp(53)))
-        brand.addView(Ui.text(this, "PREMIUM  ·  BIBLIOTHEK 2.1", 12f, Ui.BLUE, true),
+        brand.addView(Ui.text(this, "PREMIUM  ·  BIBLIOTHEK 2.2", 12f, Ui.BLUE, true),
             LinearLayout.LayoutParams(0, dp(53), 1f))
         brand.addView(Ui.button(this, "API-Key", true) { showKeyDialog() },
             Ui.lp(-2, dp(43)).apply { rightMargin = dp(8) })
@@ -413,6 +414,12 @@ class MediaLibraryActivity : Activity() {
             title = item,
             openPlayer = { imdb, custom -> openDeVideo(item, imdb, custom) },
             openEpisode = { imdb -> episodeDialog(item, imdb) },
+            openXvault = { imdb ->
+                if (item.kind == "tv") kodiEpisodeDialog(item, imdb)
+                else kodiBridge.play(item, imdb)
+            },
+            configureKodi = { kodiBridge.settingsDialog() },
+            testKodi = { kodiBridge.test() },
             openWebsite = { site ->
                 startActivity(Intent(this, BrowserActivity::class.java).apply {
                     putExtra("name", site.name)
@@ -556,6 +563,37 @@ class MediaLibraryActivity : Activity() {
             }.show()
     }
 
+    private fun kodiEpisodeDialog(item: CatalogTitle, imdb: String) {
+        val fields = Ui.vertical(this).apply { setPadding(dp(17), dp(7), dp(17), dp(7)) }
+        val season = EditText(this).apply {
+            hint = "Staffel (1–999)"
+            setText("1")
+            inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        val episode = EditText(this).apply {
+            hint = "Episode (1–999)"
+            setText("1")
+            inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        fields.addView(Ui.text(this, "Staffel", 14f, Ui.SOFT))
+        fields.addView(season)
+        fields.addView(Ui.text(this, "Episode", 14f, Ui.SOFT))
+        fields.addView(episode)
+        AlertDialog.Builder(this).setTitle("Mit xVAULT abspielen: " + item.name)
+            .setView(fields)
+            .setNegativeButton("Abbrechen", null)
+            .setPositiveButton("An Kodi übergeben") { _, _ ->
+                val s = season.text.toString().toIntOrNull()
+                val e = episode.text.toString().toIntOrNull()
+                if (s == null || e == null || s !in 1..999 || e !in 1..999) {
+                    Toast.makeText(this, "Bitte Staffel und Episode zwischen 1 und 999 angeben.",
+                        Toast.LENGTH_LONG).show()
+                } else {
+                    kodiBridge.play(item, imdb, s, e)
+                }
+            }.show()
+    }
+
     private fun selectSavedWebsite() {
         val sites = SiteStore(this).sites().filter { it.url.startsWith("https://") }
         if (sites.isEmpty()) {
@@ -661,6 +699,7 @@ class MediaLibraryActivity : Activity() {
 
     override fun onDestroy() {
         client.close()
+        kodiBridge.close()
         super.onDestroy()
     }
 }
