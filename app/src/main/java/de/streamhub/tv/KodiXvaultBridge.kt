@@ -38,6 +38,8 @@ internal class KodiXvaultBridge(private val activity: Activity) {
     private val ui = Handler(Looper.getMainLooper())
     private val keyAlias = "streamhub_kodi_rpc_password_v1"
 
+    fun close() { executor.shutdownNow() }
+
     private fun dp(n: Int) = (activity.resources.displayMetrics.density * n + .5f).toInt()
     private fun configured() = settings.getBoolean("configured", false)
 
