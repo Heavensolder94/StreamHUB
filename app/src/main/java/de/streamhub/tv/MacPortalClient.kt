@@ -269,6 +269,38 @@ internal class MacPortalClient(private val source: MacPortalSource) {
         return MacPortalPage(entries, hasMore && page < 250)
     }
 
+    /** Resolve embedded series[] episode numbers where the parent command carries the media path. */
+    private fun fromSeriesArray(season: MacPortalMedia, parent: MacPortalMedia): List<MacPortalMedia> {
+        val values = season.raw.optJSONArray("series") ?: return emptyList()
+        val command = season.command.ifBlank { parent.command }
+        if (command.isBlank() || command == "null") return emptyList()
+        val result = mutableListOf<MacPortalMedia>()
+        for (i in 0 until minOf(values.length(), 150)) {
+            val value = values.opt(i) ?: continue
+            if (value is JSONArray) {
+                for (j in 0 until minOf(value.length(), 150)) {
+                    val episode = value.optString(j).trim()
+                    if (episode.isBlank()) continue
+                    result.add(MacPortalMedia(episode,
+                        season.name + " · Folge " + (j + 1),
+                        command, "", "vod", season.raw, episode))
+                }
+            } else {
+                val episode = if (value is JSONObject)
+                    value.optString("id", value.optString("episode")) else value.toString()
+                if (episode.isBlank()) continue
+                val label = if (value is JSONObject) value.optString("name",
+                    "Folge " + (i + 1)) else "Folge " + (i + 1)
+                result.add(MacPortalMedia(episode,
+                    season.name + " · " + label,
+                    if (value is JSONObject) value.optString("cmd").ifBlank { command } else command,
+                    "", "vod", season.raw, episode))
+            }
+            if (result.size >= 300) break
+        }
+        return result
+    }
+
     fun episodes(show: MacPortalMedia): List<MacPortalMedia> {
         val embedded = show.raw.optJSONArray("episodes")
         if (embedded != null) {
@@ -276,25 +308,35 @@ internal class MacPortalClient(private val source: MacPortalSource) {
             for (i in 0 until minOf(embedded.length(), 300)) {
                 val episode = embedded.optJSONObject(i) ?: continue
                 val command = episode.optString("cmd")
-                if (command.isNotBlank()) result.add(MacPortalMedia(
+                if (command.isNotBlank() && command != "null") result.add(MacPortalMedia(
                     episode.optString("id"), episode.optString("name",
                         "Folge " + (i + 1)), command, "", "vod", episode))
             }
             if (result.isNotEmpty()) return result
         }
+        val fromShow = fromSeriesArray(show, show)
+        if (fromShow.isNotEmpty()) return fromShow
         if (show.id.isBlank()) return emptyList()
         val requests = listOf(
-            Triple("series", "series_id", show.id),
-            Triple("vod", "movie_id", show.id)
+            "series" to mapOf("movie_id" to show.id, "p" to "1"),
+            "series" to mapOf("series_id" to show.id, "p" to "1"),
+            "vod" to mapOf("movie_id" to show.id, "season_id" to "0",
+                "episode_id" to "0", "p" to "1")
         )
-        for ((type, key, id) in requests) {
-            val result = runCatching {
-                parseMedia(call(type, "get_ordered_list",
-                    mapOf(key to id, "p" to "1")), type)
+        for ((type, args) in requests) {
+            val children = runCatching {
+                parseMedia(call(type, "get_ordered_list", args), type)
             }.getOrDefault(emptyList())
-            if (result.isNotEmpty() && result.any { it.command.isNotBlank() }) {
-                return result.filter { it.command.isNotBlank() }
+            val expanded = children.flatMap { fromSeriesArray(it, show) }.take(300)
+            if (expanded.isNotEmpty()) return expanded
+            // Other portals return one directly playable item per episode.
+            val directlyPlayable = children.filter {
+                it.command.startsWith("http://") ||
+                    it.command.startsWith("https://") ||
+                    it.command.startsWith("ffmpeg ") ||
+                    it.command.startsWith("ffrt ")
             }
+            if (directlyPlayable.isNotEmpty()) return directlyPlayable
         }
         return emptyList()
     }
