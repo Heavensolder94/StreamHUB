@@ -11,8 +11,8 @@ android {
         applicationId = "de.streamhub.tv"
         minSdk = 23
         targetSdk = 35
-        versionCode = 14
-        versionName = "2.3.0"
+        versionCode = 15
+        versionName = "2.4.0"
     }
 
     compileOptions {
@@ -25,5 +25,10 @@ android {
 
 dependencies {
     implementation("org.jsoup:jsoup:1.23.2")
+    val media3Version = "1.8.1"
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-exoplayer-hls:$media3Version")
+    implementation("androidx.media3:media3-exoplayer-dash:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 }

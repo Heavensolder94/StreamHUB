@@ -88,6 +88,9 @@ class MainActivity : Activity() {
         sidebar.addView(Ui.button(this, "▣  FILM-BIBLIOTHEK", true) {
             startActivity(Intent(this, MediaLibraryActivity::class.java))
         }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(13) })
+        sidebar.addView(Ui.button(this, "📺  LIVE TV", true) {
+            startActivity(Intent(this, LiveTvActivity::class.java))
+        }, Ui.lp(-1, dp(50)).apply { bottomMargin = dp(13) })
         sidebar.addView(Ui.text(this, "ENTDECKEN", 10f, Ui.MUTED, true),
             Ui.lp(-1, dp(31)))
 
@@ -127,7 +130,7 @@ class MainActivity : Activity() {
             navColumn.addView(entry, Ui.lp(-1, dp(43)).apply { bottomMargin = dp(6) })
             if (choice == tab) firstNav[0] = entry
         }
-        sidebar.addView(Ui.text(this, "STREAMHUB  2.3", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
+        sidebar.addView(Ui.text(this, "STREAMHUB  2.4", 11f, Ui.MUTED, true), Ui.lp(-1, dp(20)))
         sidebar.addView(Ui.text(this, "Deine Seiten. Deine Regeln.", 10f, Ui.MUTED), Ui.lp(-1, dp(29)))
 
         val column = Ui.vertical(this).apply { setPadding(dp(24), dp(22), dp(17), 0) }
@@ -206,6 +209,9 @@ class MainActivity : Activity() {
         heroActions.addView(Ui.button(this, "▶  FILMBIBLIOTHEK", true) {
             startActivity(Intent(this, MediaLibraryActivity::class.java))
         }, Ui.lp(dp(194), dp(41)).apply { rightMargin = dp(9) })
+        heroActions.addView(Ui.button(this, "📺  LIVE TV", true) {
+            startActivity(Intent(this, LiveTvActivity::class.java))
+        }, Ui.lp(dp(162), dp(41)).apply { rightMargin = dp(9) })
         heroActions.addView(Ui.button(this, "▧  COVER", true) { showTab(Tab.COVERS) },
             Ui.lp(dp(150), dp(41)).apply { rightMargin = dp(9) })
         heroActions.addView(Ui.button(this, "▶  DEVIDEOSRC", true) { showTab(Tab.PLAYER) },
