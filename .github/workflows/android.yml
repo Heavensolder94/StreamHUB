@@ -2,6 +2,8 @@ name: Build Android TV APK
 on:
   workflow_dispatch:
   push:
+    branches: [main, "feature/**"]
+  pull_request:
     branches: [main]
 jobs:
   apk:
@@ -24,5 +26,5 @@ jobs:
         run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: StreamHub-Premium-V1.7-debug-apk
+          name: StreamHub-Premium-V1.8-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
