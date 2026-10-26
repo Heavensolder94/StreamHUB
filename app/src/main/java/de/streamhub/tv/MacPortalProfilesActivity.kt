@@ -11,10 +11,15 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
+import android.os.Handler
+import android.os.Looper
+import java.util.concurrent.Executors
 
 /** Local, TV-remote-friendly manager for up to 30 authorized MAG/STB profiles. */
 class MacPortalProfilesActivity : Activity() {
     private val store by lazy { MacPortalStore(this) }
+    private val tester = Executors.newSingleThreadExecutor()
+    private val uiHandler = Handler(Looper.getMainLooper())
     private fun dp(n: Int) = (resources.displayMetrics.density * n + .5f).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,6 +90,9 @@ class MacPortalProfilesActivity : Activity() {
             actions.addView(Ui.button(this, "✎  Bearbeiten", true) {
                 showEditDialog(profile)
             }, Ui.lp(dp(158), dp(48)).apply { rightMargin = dp(10) })
+            actions.addView(Ui.button(this, "◉ Test", true) {
+                testProfile(profile)
+            }, Ui.lp(dp(104), dp(48)).apply { rightMargin = dp(10) })
             actions.addView(Ui.button(this, "🗑  Löschen", true) {
                 confirmDelete(profile)
             }, Ui.lp(dp(134), dp(48)))
@@ -114,6 +122,26 @@ class MacPortalProfilesActivity : Activity() {
             .setNegativeButton("Abbrechen", null)
             .setPositiveButton("Löschen") { _, _ -> action { store.delete(profile.id) } }
             .show()
+    }
+
+    private fun testProfile(profile: MacPortalProfile) {
+        Toast.makeText(this, "Prüfe Verbindung zu " + profile.name + " …",
+            Toast.LENGTH_SHORT).show()
+        tester.execute {
+            val outcome = runCatching { MacPortalClient(profile.source).connect() }
+            uiHandler.post {
+                if (isFinishing || isDestroyed) return@post
+                val text = outcome.fold(
+                    onSuccess = { "Handshake erfolgreich. Portal erreichbar.
+" +
+                        "Ob einzelne Streams funktionieren, muss separat geprüft werden." },
+                    onFailure = { "Handshake fehlgeschlagen:
+" +
+                        (it.message ?: "Unbekannter Fehler").take(250) })
+                AlertDialog.Builder(this).setTitle("Verbindungstest: " + profile.name)
+                    .setMessage(text).setPositiveButton("OK", null).show()
+            }
+        }
     }
 
     private fun showEditDialog(existing: MacPortalProfile?) {
@@ -182,5 +210,10 @@ class MacPortalProfilesActivity : Activity() {
             }
         }
         dialog.show()
+    }
+
+    override fun onDestroy() {
+        tester.shutdownNow()
+        super.onDestroy()
     }
 }
