@@ -1,4 +1,27 @@
-# StreamHub V1.5 — Android TV / Google TV
+# StreamHub Premium V1.7 — Android TV
+
+Eigenständige Android-TV-App für Webseiten, Favoriten und öffentliche Cover-Vorschauen. Kodi bleibt separat. Stand: Android-Build wird über GitHub Actions ausgeführt; Laufzeit- und Webseiten-Kompatibilität muss auf der Xiaomi-TV-Box geprüft werden.
+
+## Neu: Cover aus ALLEN hinterlegten Webseiten
+
+- Unter **Cover entdecken** versucht die App, für jede gespeicherte Webseite mit gültiger HTTPS-Adresse bis zu acht öffentlich verlinkte Vorschaubilder zu finden. Jede Kachel führt zur passenden Detailseite **auf der Originalwebseite**.
+- Zusätzlich ersetzen gefundene Vorschaubilder die grafischen Platzhalter bei Webseiten-Kacheln in Startseite, Kategorien und Favoriten.
+- Pro Quelle wird **ohne Anmeldung, Captcha-Umgehung oder Zugriff auf Videostreams** ausschließlich öffentlich verfügbares Homepage-HTML verarbeitet. Relevante Quellen sind verlinkte `<img>`-Bilder sowie `og:image` und `twitter:image`.
+- Bei JavaScript-generierten Katalogen, fehlenden URLs, Zugriffssperren, Anti-Bot-Regeln oder unpassenden Bildern funktioniert die Erkennung gegebenenfalls nicht. In diesem Fall bleibt das StreamHub-Premium-Artwork erhalten.
+- Die Auswahl ist **heuristisch**. Die App kann Logos, Werbung oder falsche Vorschaubilder nicht in jedem Fall sicher von Film-/Anime-Covern unterscheiden. Eine automatische vollständige Film-/Serien-Datenbank ist das **nicht**.
+- Automatisch höchstens drei Seitenabfragen gleichzeitig, begrenzte Größe und Laufzeit; lokale Ergebnis- und Bild-Caches. Das manuelle Aktualisieren erfolgt über **Cover aller Quellen aktualisieren**. Die Funktion kontaktiert beim Laden der Kacheln gespeicherte Quellen.
+- **Bitte die Rechte und Nutzungsbedingungen der jeweiligen Webseiten beachten.** Nur weil ein Cover technisch zugänglich ist, ist seine freie Weiterverwendung nicht automatisch gestattet.
+- Aus Datenschutz-/Sicherheitsgründen erfolgt kein Login-Scraping, keine Umgehung von Sperren und keine Video-/Download-Link-Extraktion.
+
+Aktueller Starterkatalog: 57 Einträge, davon 36 mit URL und 21 Platzhalter. Eigene Webseiten werden ebenfalls berücksichtigt, sofern HTTPS-Adresse vorhanden.
+
+## Build
+
+Repository: `Heavensolder94/StreamHUB`. In GitHub unter **Actions → Build Android TV APK** den grünen Lauf öffnen, unter **Artifacts** `StreamHub-Premium-V1.7-debug-apk` herunterladen und `app-debug.apk` auf dem Android-TV installieren. Diese Debug-Datei ist nur für private Funktionstests.
+
+---
+
+## Historie – StreamHub V1.5
 
 Eigenständiger Webseiten-Hub für Android-TV-Geräte mit Fernbedienung, inklusive Anime-, Film-, Serien- und **Mischportale**-Kategorien. Kodi wird nicht benötigt oder verändert.
 
