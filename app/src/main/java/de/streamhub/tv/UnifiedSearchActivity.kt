@@ -152,8 +152,12 @@ class UnifiedSearchActivity : Activity() {
                         for (kind in listOf("itv", "vod", "series")) {
                             // Bounded provider calls avoid loading full catalogs on every search.
                             for (pageNumber in 1..2) {
-                                val response = runCatching { api.page(kind, "*", pageNumber) }
-                                    .getOrElse { failures.add(profile.name + " / " + kind); break }
+                                val attempt = runCatching { api.page(kind, "*", pageNumber) }
+                                if (attempt.isFailure) {
+                                    failures.add(profile.name + " / " + kind)
+                                    break
+                                }
+                                val response = attempt.getOrThrow()
                                 response.entries.filter { same(search, it.name) }
                                     .take(75).forEach { media ->
                                         hits.add(UnifiedSource(
