@@ -28,7 +28,8 @@ internal data class CatalogTitle(
     val identity get() = kind + ":" + id
     val year get() = date.take(4).ifBlank { "—" }
     fun toJson(): JSONObject = JSONObject().put("id", id).put("media_type", kind)
-        .put("title", name).put("release_date", date).put("overview", summary)
+        .put("title", name).put("name", name).put("first_air_date", date)
+        .put("release_date", date).put("overview", summary)
         .put("poster_path", poster).put("backdrop_path", backdrop).put("vote_average", rating)
     companion object {
         fun fromJson(item: JSONObject, forcedKind: String = ""): CatalogTitle? {
