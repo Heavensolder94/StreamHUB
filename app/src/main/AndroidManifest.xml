@@ -13,6 +13,10 @@
         android:theme="@style/Theme.StreamHub"
         android:usesCleartextTraffic="false">
         <activity
+            android:name=".DeVideoPlayerActivity"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize" />
+        <activity
             android:name=".BrowserActivity"
             android:exported="false"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize" />
