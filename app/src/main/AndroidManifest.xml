@@ -18,6 +18,14 @@
         android:usesCleartextTraffic="false"
         android:networkSecurityConfig="@xml/streamhub_network_security">
         <activity
+            android:name=".LiveTvActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".LiveTvPlayerActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
             android:name=".SourceDirectoryActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
