@@ -156,7 +156,7 @@ class MediaLibraryActivity : Activity() {
             "/trending/movie/week", "movie", generation, feature = true)
         addShelf(null, shelfSeries, "Serien-Highlights", "/tv/popular", "tv", generation)
         addShelf(null, shelfAnime, "Anime entdecken", "/discover/tv", "tv", generation,
-            mapOf("with_genres" to "16", "with_original_language" to "ja",
+            options = mapOf("with_genres" to "16", "with_original_language" to "ja",
                 "sort_by" to "popularity.desc", "include_adult" to "false"))
         showAttribution(content)
     }
