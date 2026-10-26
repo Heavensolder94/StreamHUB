@@ -34,7 +34,7 @@ internal data class TvProgram(
 
 /** Own XMLTV EPG source for user's imported M3U channel IDs. Kodi-free. */
 internal class EpgStore(context: android.content.Context) {
-    private val prefs = context.getSharedPreferences("streamhub_epg_v27", Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences("streamhub_epg_v27", android.content.Context.MODE_PRIVATE)
 
     fun source(): String = prefs.getString("url", "").orEmpty()
 
