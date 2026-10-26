@@ -60,9 +60,10 @@ class GithubUpdateManager(private val activity: Activity) {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun installedCode(): Long {
         val info = activity.packageManager.getPackageInfo(activity.packageName, 0)
-        return if (Build.VERSION.SDK_INT >= 28) info.longVersionCode else @Suppress("DEPRECATION") info.versionCode.toLong()
+        return if (Build.VERSION.SDK_INT >= 28) info.longVersionCode else info.versionCode.toLong()
     }
 
     private fun getNewRelease(): Release? {
@@ -92,7 +93,7 @@ class GithubUpdateManager(private val activity: Activity) {
                 val digest = asset.optString("digest").removePrefix("sha256:")
                 if (!digest.matches(Regex("[a-fA-F0-9]{64}"))) continue
                 val size = asset.optLong("size")
-                if (size !in 1..maxApkBytes) continue
+                if (size !in 1L..maxApkBytes) continue
                 return Release(
                     json.optString("tag_name").ifBlank { name },
                     versionCode,
