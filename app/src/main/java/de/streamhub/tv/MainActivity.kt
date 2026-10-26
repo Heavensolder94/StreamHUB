@@ -540,6 +540,9 @@ class MainActivity : Activity() {
     }
 
     private fun renderManage(into: LinearLayout) {
+        into.addView(Ui.button(this, "↻  Neue StreamHUB-Version suchen", true) {
+            startActivity(Intent(this, UpdateCheckActivity::class.java))
+        }, Ui.lp(dp(320), dp(52)).apply { bottomMargin = dp(12) })
         val top = Ui.horizontal(this)
         top.addView(Ui.button(this, "↓ Liste importieren", true) { pickImportFile() },
             Ui.lp(dp(205), dp(48)).apply { rightMargin = dp(12) })
