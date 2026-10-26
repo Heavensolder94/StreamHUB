@@ -110,7 +110,8 @@ class SiteStore(context: Context) {
         unchecked("huhu", "Huhu", "", Section.SERIEN),
         unchecked("flixnet", "Flixnet", "", Section.MISCHPORTALE),
         unchecked("moviedream", "MovieDream", "", Section.MISCHPORTALE),
-        unchecked("couchtuner", "CouchTuner", "", Section.MISCHPORTALE)
+        unchecked("couchtuner", "CouchTuner", "", Section.MISCHPORTALE),
+        unchecked("devideosrc", "DeVideoSRC (Player/API)", "https://devideosrc.co/", Section.MISCHPORTALE)
     )
 
     private fun official(id: String, name: String, url: String, section: Section) =
@@ -135,7 +136,7 @@ class SiteStore(context: Context) {
         if (!prefs.contains("sites")) {
             val defaults = starterSites().toMutableList()
             saveSites(defaults)
-            prefs.edit().putInt("starter_catalog", 6).apply()
+            prefs.edit().putInt("starter_catalog", 7).apply()
             return defaults
         }
         val array = JSONArray(prefs.getString("sites", "[]") ?: "[]")
@@ -238,6 +239,16 @@ class SiteStore(context: Context) {
             }
             saveSites(result)
             prefs.edit().putInt("starter_catalog", 6).apply()
+        }
+        if (version < 7) {
+            // Add only the new V1.8 source; never reset edits to existing sites.
+            val source = defaultsById["devideosrc"]
+            if (source != null && result.none { it.id == source.id ||
+                    it.url.equals(source.url, ignoreCase = true) }) {
+                result.add(source)
+                saveSites(result)
+            }
+            prefs.edit().putInt("starter_catalog", 7).apply()
         }
         return result
     }
