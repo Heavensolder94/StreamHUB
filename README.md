@@ -1,3 +1,29 @@
+# StreamHUB Premium V2.7 — Gemeinsame Suche, EPG, Xtream & Weiterschauen
+
+Diese Version ergänzt die bisherige V2.6-Android-TV-App um weitere native Funktionen, **ohne Kodi**.
+
+## Neue Funktionen
+
+- **⌕ ALLE QUELLEN:** Gemeinsame Suche nach Titeln/Sendernamen in gespeicherten **M3U-Kanälen**, dem optional konfigurierten **Xtream-Codes-Account** und dem aktiven **MAC-/Stalker-Portal**. Gleiche Titel werden in der Trefferliste zusammengefasst, die verfügbaren Anbieter bleiben als auswählbare Quellen sichtbar.
+- **Inaktive MAC-Portale werden standardmäßig nicht abgefragt.** Ein eigenes Opt-in kann die ersten fünf gespeicherten Portalprofile durchsuchen. Die Suche ist bewusst begrenzt (max. zwei Katalogseiten pro Bereich/Portal und bis zu 3000 API-Einträge pro Xtream-Kategorie) und keine globale Volltextsuche über alle Providerdaten.
+- **♥ Merkliste & ↺ Weiterschauen:** Lokales Journal der abgespielten Streams, Titel, Fortschrittspositionen und Favoriten. Direkte VOD-Titel setzen bei geeigneten Streams die Wiedergabe an der gespeicherten Position fort. Aus dem Verlauf wird der Titel erneut gesucht, da zeitlich begrenzte Stream-URLs **nicht** gespeichert werden.
+- **📅 EPG:** Eigene HTTPS-XMLTV-Quelle hinterlegen, Sender anhand von `tvg-id` aus importierten M3U-Senderlisten zuordnen, aktuelle und nächste Sendungen sehen und Sender direkt öffnen. XMLTV-Limit 8 MB; EPG für Stalker und Xtream wird damit noch **nicht automatisch** importiert.
+- **Xtream Codes:** Im LIVE-TV-Bereich oder über die Startnavigation einen **eigenen autorisierten** Xtream-Zugang (Server, Benutzername, Passwort) hinterlegen und von dort Live-Sender, VOD und Serien/Episoden öffnen. Login wird geprüft, Zugangsdaten werden mit Android Keystore verschlüsselt gespeichert. Maximal ein Xtream-Account in dieser ersten Ausbaustufe.
+- **Native Player-Verbesserungen:** Untertitelschaltfläche, verbessertes Buffering, manuelles Neuladen, VOD-Fortschritt; bereits vorhandene Android-Player-Steuerung und M3U-Senderwechsel bleiben erhalten.
+- **MAC-Portal-Diagnose:** Im Profilmanager die jeweilige Portal-Verbindung durch einen Handshake prüfen, ohne das aktive Profil zu wechseln.
+- **Update-Check:** Unter `Verwalten` die Versionsnummer mit dem öffentlichen GitHub-Hauptbranch vergleichen und GitHub Actions öffnen. Keine automatische APK-Installation.
+
+## Nutzung
+
+1. Die aktuelle Android-TV-APK aus **GitHub Actions → Build Android TV APK → Artifacts → `StreamHub-Premium-V2.7-debug-apk`** installieren.
+2. Für EPG **LIVE TV → EPG → XMLTV** öffnen und eine passende HTTPS-Quelle hinterlegen.
+3. Für Xtream **LIVE TV → Xtream Codes → Zugang** verwenden. Zugang nur mit gültiger Anbieterfreischaltung.
+4. Für vereinte Ergebnisse auf der Startseite **ALLE QUELLEN** öffnen; nach Titeln suchen, Quelle wählen und starten. Gespeicherte inaktive MAC-Portale nur per Checkbox hinzufügen.
+
+**Nicht enthalten/noch zu testen:** Verifikation mit realen aktiven IPTV-Anbietern, vollständige serverweite Suche aller größeren Kataloge, automatische Dublettenabstimmung mit TMDB-Webkatalogen, ein universelles Stalker-EPG, allgemeines DRM/Timeshift/Catch-up sowie garantierte Wiedergabe jedes providerabhängigen Codec- und Authentifizierungsformats. Auf Portal- und Xtream-Antworten gelten technische Größen- und Zeitlimits. Bei HTTP können Zugangsdaten und MAC-IDs im Netzwerk offengelegt werden; bitte HTTPS verwenden.
+
+---
+
 # StreamHUB Premium V2.6 — Mehrere MAC-IPTV-Profile
 
 In **LIVE TV → MAC IPTV → ⚙ Profile** können mehrere eigene, autorisierte MAG-/Stalker-Portale verwaltet werden.
