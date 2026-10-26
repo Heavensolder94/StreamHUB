@@ -75,7 +75,7 @@ class MediaLibraryActivity : Activity() {
         val brand = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
         brand.addView(Ui.text(this, "▶  STREAMHUB", 24f, Ui.TEXT, true),
             Ui.lp(dp(235), dp(53)))
-        brand.addView(Ui.text(this, "PREMIUM  ·  BIBLIOTHEK 2.2", 12f, Ui.BLUE, true),
+        brand.addView(Ui.text(this, "PREMIUM  ·  BIBLIOTHEK 2.3", 12f, Ui.BLUE, true),
             LinearLayout.LayoutParams(0, dp(53), 1f))
         brand.addView(Ui.button(this, "API-Key", true) { showKeyDialog() },
             Ui.lp(-2, dp(43)).apply { rightMargin = dp(8) })
@@ -421,9 +421,19 @@ class MediaLibraryActivity : Activity() {
             configureKodi = { kodiBridge.settingsDialog() },
             testKodi = { kodiBridge.test() },
             openWebsite = { site ->
+                val targetedUrl = SourceSearchRouter.searchUrl(site, item.name) ?: site.url
                 startActivity(Intent(this, BrowserActivity::class.java).apply {
-                    putExtra("name", site.name)
-                    putExtra("url", site.url)
+                    putExtra("name", site.name + " · Suche: " + item.name)
+                    putExtra("url", targetedUrl)
+                })
+            },
+            openDirectory = { imdb ->
+                startActivity(Intent(this, SourceDirectoryActivity::class.java).apply {
+                    putExtra("title", item.name)
+                    putExtra("kind", item.kind)
+                    putExtra("year", item.year)
+                    putExtra("tmdb_id", item.id)
+                    putExtra("imdb", imdb)
                 })
             },
             openTmdbWatch = { url ->
