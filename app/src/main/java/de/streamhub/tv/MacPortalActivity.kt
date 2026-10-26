@@ -287,7 +287,8 @@ class MacPortalActivity : Activity() {
 
     private fun openItem(item: MacPortalMedia) {
         val connected = api ?: return
-        if (item.type == "series") {
+        if (item.type == "series" || item.raw.optString("is_series") == "1" ||
+            item.raw.optJSONArray("series") != null || item.raw.optJSONArray("episodes") != null) {
             task("Lade Staffeln und Episoden …", { connected.episodes(item) }) { episodes ->
                 if (episodes.isEmpty()) {
                     if (item.command.isNotBlank()) play(item)
