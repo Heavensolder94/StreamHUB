@@ -1,23 +1,4 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-}
-
-android {
-    namespace = "de.streamhub.tv"
-    compileSdk = 35
-
-    defaultConfig {
-        applicationId = "de.streamhub.tv"
-        minSdk = 23
-        targetSdk = 35
-        versionCode = 6
-        versionName = "1.5.0"
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions { jvmTarget = "17" }
+    id("com.android.application") version "8.7.3" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.21" apply false
 }
