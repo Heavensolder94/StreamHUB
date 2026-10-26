@@ -41,6 +41,8 @@ class NativeHubActivity : Activity() {
     private val resolving = AtomicBoolean(false)
     private var page = Page.HOME
     private var currentTitle: CatalogTitle? = null
+    private var nativeDetailVisible = false
+    private val updater by lazy { GithubUpdateManager(this) }
     private var generation = 0
     private var searchText = ""
     private var snapshot: NativeCatalogSnapshot? = null
@@ -56,6 +58,7 @@ class NativeHubActivity : Activity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN)
         showPage(Page.HOME)
         reloadIndex(false)
+        updater.check(manual = false)
     }
 
     private fun reloadIndex(force: Boolean) {
@@ -70,11 +73,12 @@ class NativeHubActivity : Activity() {
         }
     }
 
-    private fun showPage(next: Page) {
+    private fun showPage(next: Page, keepLimit: Boolean = false) {
         page = next
         currentTitle = null
+        nativeDetailVisible = false
         generation++
-        limit = if (next == Page.LIVE) 80 else 48
+        if (!keepLimit) limit = if (next == Page.LIVE) 80 else 48
         shell()
         when (page) {
             Page.HOME -> home()
@@ -131,7 +135,7 @@ class NativeHubActivity : Activity() {
                 bottomMargin = dp(7)
             })
         }
-        side.addView(Ui.button(this, "⚙  Einstellungen", true) {
+        side.addView(Ui.button(this, "⚙  Quellen & Setup", true) {
             startActivity(Intent(this, MainActivity::class.java).putExtra("native_entry", true))
         }, Ui.lp(-1, dp(45)))
         side.addView(Ui.text(this, "Mit Fernbedienung bedienbar", 10f, Ui.MUTED),
@@ -303,9 +307,7 @@ class NativeHubActivity : Activity() {
         section(if (kind == "anime") "Anime entdecken" else
             if (kind == "vod") "Deine Filme" else "Deine Serien")
         val candidates = snapshot?.entries?.filter {
-            it.kind == bucket &&
-                (kind != "anime" || it.title.contains("anime", ignoreCase = true) ||
-                    it.title.contains("one piece", ignoreCase = true))
+            it.kind == bucket && kind != "anime"
         }.orEmpty()
         if (kind == "anime") {
             text("Anime aus TMDB entdecken; IPTV-Inhalte werden nur bei " +
@@ -596,12 +598,8 @@ class NativeHubActivity : Activity() {
         if (items.size > maxCount) {
             content.addView(Ui.button(this,
                 "Weitere Titel anzeigen · " + (items.size - maxCount) + " verbleibend", true) {
-                limit += 48
-                val preserve = page
-                showPage(preserve)
                 limit = maxCount + 48
-                // Re-render while preserving the enlarged local window.
-                if (page == Page.LIVE) liveTv()
+                showPage(page, keepLimit = true)
             }, Ui.lp(dp(350), dp(49)).apply { bottomMargin = dp(15) })
         }
     }
@@ -643,6 +641,7 @@ class NativeHubActivity : Activity() {
 
     private fun showNativeDetail(item: NativeMediaSource) {
         currentTitle = null
+        nativeDetailVisible = true
         generation++
         shell()
         heading.text = item.title
@@ -696,6 +695,7 @@ class NativeHubActivity : Activity() {
 
     private fun showDetail(title: CatalogTitle) {
         currentTitle = title
+        nativeDetailVisible = true
         generation++
         shell()
         heading.text = title.name
@@ -897,12 +897,13 @@ class NativeHubActivity : Activity() {
 
     @Deprecated("Android TV navigation")
     override fun onBackPressed() {
-        if (currentTitle != null) showPage(page)
+        if (nativeDetailVisible) showPage(page)
         else if (page != Page.HOME) showPage(Page.HOME)
         else super.onBackPressed()
     }
 
     override fun onDestroy() {
+        updater.shutdown()
         tmdb.close()
         io.shutdownNow()
         super.onDestroy()
