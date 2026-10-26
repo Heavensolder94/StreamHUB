@@ -1,3 +1,31 @@
+# StreamHUB Premium V2.3 — Alle Quellen pro Film verbinden
+
+**Neuer Ablauf:** Film oder Serie in der TMDB-Bibliothek auswählen → „Jetzt ansehen“ → DeVideoSRC, Kodi/xVAULT, TMDB/JustWatch-Angebote und **gezielte Seitensuche auf den eigenen Webseiten** an einem gemeinsamen Ort.
+
+## Neue „Alle Quellen“-Ansicht
+
+- Alle **58** ursprünglich hinterlegten Einträge (ggf. plus persönliche Ergänzungen oder minus bewusst gelöschte Quellen) direkt unter einem ausgewählten Film/Serientitel zugänglich.
+- **37** Einträge mit URLs im ursprünglichen Katalog (einschließlich DeVideoSRC), **21** ohne Adresse; tatsächliche Zahlen werden zur Laufzeit aus den gespeicherten Einträgen ermittelt.
+- TV-optimierte Filter: Alle, Anime, Filme, Serien, Mischportale, Favoriten, Ohne Adresse sowie Namensfilter.
+- Website-Eintrag öffnen: „Titel suchen“, „Startseite öffnen“, „Webadresse bearbeiten“, „Favorit ändern“, „Titel kopieren“.
+- Unter „Ohne Adresse“ lassen sich fehlende URLs einzeln vom Nutzer ergänzen. Keine Fantasiedomains oder automatische Wiederherstellung absichtlich gelöschter Quellen.
+- Schnellwahl direkt auf der Detailseite führt nun zu einer **titelbezogenen Suche** statt nur zur Homepage.
+- Gesicherte URL-Aufbereitung mit HTTPS und Domain-Validierung; vorhandene Benutzerdaten und Einstellungen bleiben erhalten.
+
+## Suchweg und Grenzen
+
+Die meisten externen Webseiten bieten **keine einheitliche dokumentierte API**. Für sie öffnet StreamHUB deshalb eine **Google-Suche mit dem offiziellen site:-Operator**, begrenzt auf die Domain der gewählten Quelle und den aktuellen Filmtitel. Für YouTube nutzt StreamHUB stattdessen dessen reguläre Suchoberfläche. Beispiel: site:example.com "Interstellar". Das ist eine Suchhilfe und kein automatischer Provider-Check: **ein Suchergebnis ist kein Nachweis für einen vorhandenen oder legalen Stream**. Bei nicht indexierten Webseiten oder in WebViews eingeschränkten Suchmaschinen können Ergebnisse fehlen.
+
+Bei den 21 leeren URL-Einträgen lässt sich nichts öffnen, bevor eine reale Adresse eingetragen ist. Auch gespeicherte Websites mit HTTPS-Adresse sind nicht automatisch erreichbar, lizenziert oder streamfähig.
+
+**Nur TMDB-/JustWatch-Verfügbarkeitsdaten für Deutschland** zeigen konkrete Anbieter, getrennt nach Abo, kostenlos, Werbung, Miete, Kauf, und verlinken zur TMDB-Watch-Seite. DeVideoSRC und Kodi/xVAULT bleiben als separate Player über IMDb-/TMDB-ID integriert. Es wird keine DRM-Umgehung oder automatische Videolink-Extraktion umgesetzt.
+
+## APK / Installation
+
+GitHub → Actions → Build Android TV APK → erfolgreicher Build → Artefakt StreamHub-Premium-V2.3-debug-apk → ZIP entpacken → app-debug.apk installieren. Für TMDB-Poster und Inhaltslisten ist weiterhin ein persönlicher TMDB-Key erforderlich. Die Integration der Website-Suche kann erst mit realem Android-TV-WebView und dem jeweiligen Anbieter getestet werden.
+
+---
+
 # StreamHUB Premium V2.2 – optionale Kodi/xVAULT-Brücke
 
 Diese Version ergänzt die eigenständige Android-TV-Filmbibliothek um einen separaten, optionalen **Kodi-Player über xVAULT**. Die APK enthält keine xVAULT-Python-Scraper und installiert xVAULT nicht: xVAULT bleibt im dafür vorgesehenen Kodi-Laufzeitsystem. Das Addon in der bereitgestellten ZIP deklariert GPL-3.0-only und verfügt über eigene Updates/Telemetrie/Synchronisation.
