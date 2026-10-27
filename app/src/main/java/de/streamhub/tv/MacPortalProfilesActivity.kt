@@ -213,9 +213,16 @@ class MacPortalProfilesActivity : Activity() {
                 "sie ergänzt. Die Profil-Liste zeigt MACs nur verkürzt. " +
                 "URL und MAC werden verschlüsselt gespeichert.",
             12f, Ui.MUTED), Ui.lp(-1, dp(81)))
+        // Keep MAC field and Save controls reachable when the Android TV keyboard
+        // consumes most of the screen. DPAD focuses children inside the scroller.
+        val scroller = ScrollView(this).apply {
+            isFillViewport = false
+            isVerticalScrollBarEnabled = true
+            addView(layout)
+        }
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "Portalprofil hinzufügen" else "Portalprofil bearbeiten")
-            .setView(layout)
+            .setView(scroller)
             .setNegativeButton("Abbrechen", null)
             .setPositiveButton("Speichern", null)
             .create()
