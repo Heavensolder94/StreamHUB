@@ -36,6 +36,7 @@ class NativeHubActivity : Activity() {
     }
     private val tmdb by lazy { TmdbClient(this) }
     private val watch by lazy { WatchStateStore(this) }
+    private val directSources by lazy { DirectTitleSourceStore(this) }
     private val sites by lazy { SiteStore(this) }
     private val covers by lazy { WebsiteCovers(this) }
     private val io = Executors.newSingleThreadExecutor()
@@ -976,8 +977,12 @@ class NativeHubActivity : Activity() {
         text(matches.size.toString() + " Katalogeintrag/Einträge mit diesem Titel. " +
             "Die tatsächliche Abspielbarkeit hängt von deinem Anbieter ab.",
             14f, Ui.SOFT, 76)
+        content.addView(Ui.button(this, "▶  Über meine Quellen abspielen", true) {
+            chooseMySource(item.kind, item.title)
+        }, Ui.lp(dp(345), dp(58)).apply { bottomMargin = dp(12) })
         renderOfferPicker(matches, item.title)
         addFeedOffers(item.title)
+        addDirectSourceButtons(item.kind, item.title)
         content.addView(Ui.button(this, if (watch.get(item.key)?.favorite == true)
             "♥ Aus Merkliste entfernen" else "♡ In Merkliste speichern", true) {
             val changed = watch.setFavorite(item.key, item.title, item.kind)
@@ -1054,7 +1059,10 @@ class NativeHubActivity : Activity() {
 
         val kind = if (title.kind == "movie") "vod" else "series"
         val matchingOffers = snapshot?.lookup(kind, title.name).orEmpty()
-        section("▶ Quellen für diesen Titel")
+        section("▶ Direkt über meine Quellen abspielen")
+        content.addView(Ui.button(this, "▶  JETZT ANSEHEN · QUELLE WÄHLEN", true) {
+            chooseMySource(kind, title.name)
+        }, Ui.lp(dp(365), dp(60)).apply { bottomMargin = dp(13) })
         if (matchingOffers.isNotEmpty()) {
             text("Katalogtreffer mit gleichem Namen – Anbieterzugriff und Abspielbarkeit " +
                 "noch nicht geprüft. Bitte Quelle auswählen.", 12f, Ui.MUTED, 65)
@@ -1064,6 +1072,7 @@ class NativeHubActivity : Activity() {
                 "dass der Titel nirgendwo verfügbar ist.", 14f, Ui.MUTED, 78)
         }
         addFeedOffers(title.name)
+        addDirectSourceButtons(kind, title.name)
         content.addView(Ui.button(this, "Weitere IPTV-Kataloge durchsuchen", true) {
             startActivity(Intent(this, UnifiedSearchActivity::class.java)
                 .putExtra("prefill_query", title.name))
@@ -1082,6 +1091,155 @@ class NativeHubActivity : Activity() {
         text("Filmdaten: TMDB. StreamHUB überprüft keine externen Webseiten " +
             "automatisch auf Wiedergaberecht oder Verfügbarkeit.",
             12f, Ui.MUTED, 77)
+    }
+
+    /**
+     * One native source chooser for all configured, actually resolvable sources.
+     * Web bookmarks never masquerade as playable media. User-pasted stream links
+     * can be chosen only after validation and explicit assignment to the title.
+     */
+    private fun chooseMySource(kind: String, title: String) {
+        val labels = mutableListOf<String>()
+        val commands = mutableListOf<() -> Unit>()
+
+        snapshot?.lookup(kind, title).orEmpty().take(15).forEach { source ->
+            labels.add("▶ " + source.provider + " · IPTV")
+            commands.add { openNative(source) }
+        }
+        feedMatches(title).forEach { feed ->
+            if (feed.videoUrl.isNotBlank()) {
+                labels.add("▶ " + feed.provider + " · Direkter Feed-Stream")
+                commands.add {
+                    play(PlaybackOptions.Direct(feed.videoUrl, feed.title,
+                        kind, false, "feed:" + feed.id))
+                }
+            } else {
+                labels.add("↗ " + feed.provider + " · Webseite (kein Direktstream)")
+                commands.add { openFeedEntry(feed) }
+            }
+        }
+        directSources.forTitle(kind, title).forEach { source ->
+            labels.add("▶ " + source.provider + " · Eigener Medienlink")
+            commands.add {
+                play(PlaybackOptions.Direct(source.streamUrl, title,
+                    kind, false, "direct:" + source.id))
+            }
+        }
+
+        val countPlayable = labels.count { it.startsWith("▶") }
+        labels.add("＋ Direktlink für diesen Titel hinzufügen")
+        commands.add { addDirectSourceDialog(kind, title) }
+        if (directSources.forTitle(kind, title).isNotEmpty()) {
+            labels.add("⚙ Eigene Medienlinks verwalten")
+            commands.add { manageDirectSources(kind, title) }
+        }
+        labels.add("⌕ Weitere IPTV-Katalogseiten durchsuchen")
+        commands.add {
+            startActivity(Intent(this, UnifiedSearchActivity::class.java)
+                .putExtra("prefill_query", title))
+        }
+        AlertDialog.Builder(this).setTitle("StreamHUB · Meine Quellen")
+            .setMessage(title + "\n" + countPlayable.toString() +
+                " direkte Abspieloption(en) aus deinen konfigurierten Quellen. " +
+                "Titelgleichheit und Erreichbarkeit werden erst beim Öffnen geprüft.")
+            .setItems(labels.toTypedArray()) { _, index ->
+                commands.getOrNull(index)?.invoke()
+            }.setNegativeButton("Abbrechen", null).show()
+    }
+
+    private fun addDirectSourceButtons(kind: String, title: String) {
+        val entries = directSources.forTitle(kind, title)
+        if (entries.isNotEmpty()) {
+            section("Eigene direkte Medienlinks")
+            entries.forEach { entry ->
+                content.addView(Ui.button(this,
+                    "▶ " + entry.provider + " · direkter Medienlink", true) {
+                    play(PlaybackOptions.Direct(entry.streamUrl, title, kind,
+                        false, "direct:" + entry.id))
+                }, Ui.lp(-1, dp(51)).apply { bottomMargin = dp(7) })
+            }
+        }
+        content.addView(Ui.button(this,
+            "＋ Streamlink aus meiner Quelle zuordnen", true) {
+            addDirectSourceDialog(kind, title)
+        }, Ui.lp(dp(351), dp(49)).apply { bottomMargin = dp(11) })
+    }
+
+    private fun addDirectSourceDialog(kind: String, title: String) {
+        val stored = sites.sites().filter { it.url.startsWith("https://") }
+            .sortedWith(compareByDescending<Site> { it.favorite }.thenBy { it.name })
+            .take(25)
+        val names = stored.map { it.name }.distinct() + "Eigene Quelle"
+        AlertDialog.Builder(this).setTitle("Welche deiner Quellen?")
+            .setMessage("Ordne einen direkten Stream-Link dem ausgewählten Titel zu. " +
+                "Nur vom Anbieter bereitgestellte Medienlinks können nativ abgespielt werden.")
+            .setItems(names.toTypedArray()) { _, n ->
+                val chosen = names[n]
+                directUrlForm(kind, title, chosen)
+            }.setNegativeButton("Abbrechen", null).show()
+    }
+
+    private fun directUrlForm(kind: String, title: String, sourceName: String) {
+        val panel = Ui.vertical(this).apply {
+            setPadding(dp(20), dp(12), dp(20), dp(10))
+        }
+        val label = EditText(this).apply {
+            setSingleLine(true)
+            setText(sourceName)
+            hint = "Anbieter-/Quellenname"
+        }
+        val url = EditText(this).apply {
+            setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            hint = "https://anbieter.example/film.m3u8"
+        }
+        panel.addView(label, Ui.lp(-1, dp(57)))
+        panel.addView(url, Ui.lp(-1, dp(57)))
+        panel.addView(Ui.text(this,
+            "Unterstützt direkte HTTPS-Medienadressen wie HLS (.m3u8), " +
+                "DASH (.mpd), MP4 oder WebM. Keine Homepage, kein eingebetteter " +
+                "DRM-Player. Der Medienlink wird verschlüsselt auf dieser Box gespeichert.",
+            12f, Ui.MUTED), Ui.lp(-1, dp(105)))
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Direkte Wiedergabe · " + title.take(55))
+            .setView(panel).setNegativeButton("Abbrechen", null)
+            .setPositiveButton("Speichern", null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                try {
+                    directSources.add(kind, title, label.text.toString(), url.text.toString())
+                    dialog.dismiss()
+                    Toast.makeText(this, "Direkte Quelle gespeichert.",
+                        Toast.LENGTH_SHORT).show()
+                    when {
+                        currentTitle != null -> showDetail(currentTitle!!)
+                        currentNative != null -> showNativeDetail(currentNative!!)
+                        else -> showPage(page)
+                    }
+                } catch (error: Exception) {
+                    Toast.makeText(this,
+                        error.message ?: "Ungültige Video-URL.",
+                        Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun manageDirectSources(kind: String, title: String) {
+        val values = directSources.forTitle(kind, title)
+        if (values.isEmpty()) return
+        AlertDialog.Builder(this).setTitle("Eigene Streamlinks verwalten")
+            .setItems(values.map { it.provider + " · Link entfernen" }.toTypedArray()) { _, n ->
+                val source = values[n]
+                AlertDialog.Builder(this).setTitle("Diesen Medienlink entfernen?")
+                    .setMessage(source.provider + "\n" + title)
+                    .setPositiveButton("Entfernen") { _, _ ->
+                        directSources.delete(source.id)
+                        currentTitle?.let(::showDetail)
+                            ?: currentNative?.let(::showNativeDetail)
+                    }.setNegativeButton("Abbrechen", null).show()
+            }.setNegativeButton("Abbrechen", null).show()
     }
 
     private fun renderOfferPicker(offers: List<NativeMediaSource>, title: String) {
