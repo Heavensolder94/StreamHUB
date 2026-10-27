@@ -81,8 +81,11 @@ class NativeHubActivity : Activity() {
             if (isDestroyed || isFinishing) return@refresh
             if (feedItems != entries) {
                 feedItems = entries
-                if (currentTitle == null && currentNative == null) showPage(page)
-                else if (currentTitle != null) showDetail(currentTitle!!)
+                if (sourcePickerVisible) return@refresh
+                if (currentTitle == null && currentNative == null) {
+                    rememberFocusedCard()
+                    showPage(page)
+                } else if (currentTitle != null) showDetail(currentTitle!!)
                 else currentNative?.let { showNativeDetail(it) }
             }
         }
@@ -96,10 +99,21 @@ class NativeHubActivity : Activity() {
             waitingSources = false
             snapshot = result
             when {
+                sourcePickerVisible -> Unit // Picker keeps control until Back.
                 currentTitle != null -> showDetail(currentTitle!!)
                 currentNative != null -> showNativeDetail(currentNative!!)
-                else -> showPage(page)
+                else -> {
+                    rememberFocusedCard()
+                    showPage(page)
+                }
             }
+        }
+    }
+
+    private fun rememberFocusedCard() {
+        val identifier = currentFocus?.tag as? String ?: return
+        if (identifier.startsWith("tmdb:") || identifier.startsWith("native:")) {
+            returnFocusTag = identifier
         }
     }
 
