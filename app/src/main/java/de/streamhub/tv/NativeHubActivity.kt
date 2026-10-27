@@ -104,6 +104,7 @@ class NativeHubActivity : Activity() {
     }
 
     private fun showPage(next: Page, keepLimit: Boolean = false) {
+        if (next != page) returnFocusTag = null
         page = next
         currentTitle = null
         currentNative = null
@@ -964,32 +965,40 @@ class NativeHubActivity : Activity() {
             clipToPadding = false
             clipChildren = false
         }
+        val isLive = items.firstOrNull()?.kind == "itv"
+        val tileHeight = if (isLive) 166 else 233
+        val tileWidth = if (isLive) 220 else 166
         uniqueOffers(items).take(count).forEach { native ->
-            row.addView(nativeCard(native), Ui.lp(dp(177), dp(182)).apply {
-                rightMargin = dp(14)
+            row.addView(nativeCard(native), Ui.lp(dp(tileWidth), dp(tileHeight)).apply {
+                rightMargin = dp(15)
             })
         }
         scroll.addView(row)
-        content.addView(scroll, Ui.lp(-1, dp(212)))
+        content.addView(scroll, Ui.lp(-1, dp(tileHeight + 31)))
     }
 
     private fun nativeGrid(items: List<NativeMediaSource>, maxCount: Int) {
         val distinct = uniqueOffers(items)
         val visible = distinct.take(maxCount)
         visible.chunked(4).forEach { four ->
+            val tileHeight = if (four.firstOrNull()?.kind == "itv") 166 else 226
             val row = Ui.horizontal(this).apply {
                 clipToPadding = false
                 clipChildren = false
             }
             four.forEach { item ->
-                row.addView(nativeCard(item), LinearLayout.LayoutParams(0, dp(163), 1f)
-                    .apply { rightMargin = dp(13); bottomMargin = dp(13) })
+                row.addView(nativeCard(item),
+                    LinearLayout.LayoutParams(0, dp(tileHeight), 1f).apply {
+                        rightMargin = dp(15); bottomMargin = dp(13)
+                    })
             }
             repeat(4 - four.size) {
-                row.addView(View(this), LinearLayout.LayoutParams(0, dp(163), 1f)
-                    .apply { rightMargin = dp(13) })
+                row.addView(View(this),
+                    LinearLayout.LayoutParams(0, dp(tileHeight), 1f).apply {
+                        rightMargin = dp(15)
+                    })
             }
-            content.addView(row, Ui.lp(-1, dp(180)))
+            content.addView(row, Ui.lp(-1, dp(tileHeight + 17)))
         }
         if (distinct.size > maxCount) {
             content.addView(Ui.button(this,
