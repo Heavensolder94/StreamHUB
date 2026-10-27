@@ -768,7 +768,6 @@ class NativeHubActivity : Activity() {
             11f, Ui.SOFT), Ui.lp(-1, dp(24)))
         card.addView(text, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
         card.tag = "tmdb:" + item.identity
-        card.tag = "native:" + item.key
         Ui.focusCard(card, 14f, 1.085f) { focused ->
             if (focused && ::focusLabel.isInitialized) {
                 focusLabel.text = "●  AUSGEWÄHLT: " + item.name.take(57) +
@@ -988,6 +987,7 @@ class NativeHubActivity : Activity() {
             card.addView(image, 1, FrameLayout.LayoutParams(-1, -1))
             covers.loadInto(image, mediaArt)
         }
+        card.tag = "native:" + item.key
         Ui.focusCard(card, 14f, 1.085f) { focused ->
             if (focused && ::focusLabel.isInitialized) {
                 val count = snapshot?.lookup(item.kind, item.title)?.size ?: 1
@@ -1021,12 +1021,16 @@ class NativeHubActivity : Activity() {
         text(matches.size.toString() + " Katalogeintrag/Einträge mit diesem Titel. " +
             "Die tatsächliche Abspielbarkeit hängt von deinem Anbieter ab.",
             14f, Ui.SOFT, 76)
-        content.addView(Ui.button(this, "▶  Über meine Quellen abspielen", true) {
+        val primary = Ui.button(this, "▶  ÜBER MEINE QUELLEN ABSPIELEN", true) {
             chooseMySource(item.kind, item.title)
-        }, Ui.lp(dp(345), dp(58)).apply { bottomMargin = dp(12) })
-        renderOfferPicker(matches, item.title)
-        addFeedOffers(item.title)
-        addDirectSourceButtons(item.kind, item.title)
+        }
+        content.addView(primary, Ui.lp(dp(374), dp(62)).apply {
+            bottomMargin = dp(11)
+        })
+        content.addView(Ui.button(this, "＋ Weitere Quelle hinzufügen", true) {
+            addDirectSourceDialog(item.kind, item.title)
+        }, Ui.lp(dp(294), dp(48)).apply { bottomMargin = dp(14) })
+        focusDetailAction(primary)
         content.addView(Ui.button(this, if (watch.get(item.key)?.favorite == true)
             "♥ Aus Merkliste entfernen" else "♡ In Merkliste speichern", true) {
             val changed = watch.setFavorite(item.key, item.title, item.kind)
@@ -1104,19 +1108,25 @@ class NativeHubActivity : Activity() {
         val kind = if (title.kind == "movie") "vod" else "series"
         val matchingOffers = snapshot?.lookup(kind, title.name).orEmpty()
         section("▶ Direkt über meine Quellen abspielen")
-        content.addView(Ui.button(this, "▶  JETZT ANSEHEN · QUELLE WÄHLEN", true) {
+        val primary = Ui.button(this, "▶  JETZT ANSEHEN · QUELLE WÄHLEN", true) {
             chooseMySource(kind, title.name)
-        }, Ui.lp(dp(365), dp(60)).apply { bottomMargin = dp(13) })
-        if (matchingOffers.isNotEmpty()) {
-            text("Katalogtreffer mit gleichem Namen – Anbieterzugriff und Abspielbarkeit " +
-                "noch nicht geprüft. Bitte Quelle auswählen.", 12f, Ui.MUTED, 65)
-            renderOfferPicker(matchingOffers, title.name)
-        } else {
-            text("Kein Treffer im bisher geladenen IPTV-Ausschnitt. Das bedeutet nicht, " +
-                "dass der Titel nirgendwo verfügbar ist.", 14f, Ui.MUTED, 78)
         }
-        addFeedOffers(title.name)
-        addDirectSourceButtons(kind, title.name)
+        content.addView(primary, Ui.lp(dp(374), dp(62)).apply {
+            bottomMargin = dp(11)
+        })
+        val streamCount = matchingOffers.size +
+            feedMatches(title.name).count { it.videoUrl.isNotBlank() } +
+            directSources.forTitle(kind, title.name).size
+        text(if (streamCount > 0)
+            streamCount.toString() + " mögliche direkte Abspielquelle(n) in deinen Verbindungen. " +
+                "Die Zuordnung erfolgt nach Titel; Wiedergabe ist nicht garantiert."
+        else "Noch kein passender Stream im geladenen Katalog. Du kannst eine " +
+            "eigene Quelle hinzufügen oder weitere Anbieter durchsuchen.",
+            13f, Ui.SOFT, 81)
+        content.addView(Ui.button(this, "＋ Eigene Quelle hinzufügen", true) {
+            addDirectSourceDialog(kind, title.name)
+        }, Ui.lp(dp(288), dp(49)).apply { bottomMargin = dp(12) })
+        focusDetailAction(primary)
         content.addView(Ui.button(this, "Weitere IPTV-Kataloge durchsuchen", true) {
             startActivity(Intent(this, UnifiedSearchActivity::class.java)
                 .putExtra("prefill_query", title.name))
