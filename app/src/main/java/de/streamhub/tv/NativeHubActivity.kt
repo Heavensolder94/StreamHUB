@@ -247,89 +247,145 @@ class NativeHubActivity : Activity() {
     }
 
     private fun home() {
+        // Make the first playable catalog item the hero when one is configured.
+        // When no provider is connected, use a useful onboarding state instead
+        // of pretending that an arbitrary movie can be watched.
+        val featured = snapshot?.entries?.firstOrNull { it.kind == "vod" }
+            ?: snapshot?.entries?.firstOrNull { it.kind == "series" }
         val hero = FrameLayout(this).apply {
+            background = Ui.bg(0xFF142336.toInt(), 20f,
+                context = this@NativeHubActivity)
             clipToOutline = true
-            background = Ui.bg(Ui.PANEL, 18f, context = this@NativeHubActivity)
         }
-        hero.addView(CinematicArtwork(this, "STREAMHUB NATIVE", "Filme", hero = true),
+        hero.addView(CinematicArtwork(this,
+            featured?.title ?: "StreamHUB", "Filme", hero = true),
             FrameLayout.LayoutParams(-1, -1))
+        val mediaArt = featured?.mac?.image.orEmpty().ifBlank {
+            featured?.xtream?.raw?.optString("cover").orEmpty().ifBlank {
+                featured?.xtream?.raw?.optString("stream_icon").orEmpty()
+            }
+        }
+        if (mediaArt.startsWith("https://")) {
+            val backdrop = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
+            hero.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
+            covers.loadInto(backdrop, mediaArt)
+        }
         hero.addView(View(this).apply {
             background = Ui.gradient(this@NativeHubActivity,
-                intArrayOf(0xF4080F1E.toInt(), 0xC8163250.toInt(), 0x33101B35),
-                18f)
+                intArrayOf(0xFA07101F.toInt(), 0xF0091930.toInt(), 0x33102340),
+                20f)
         }, FrameLayout.LayoutParams(-1, -1))
         val heroText = Ui.vertical(this).apply {
-            setPadding(dp(28), dp(17), dp(20), dp(12))
+            setPadding(dp(29), dp(19), dp(22), dp(13))
         }
-        heroText.addView(Ui.text(this, "STREAMHUB · NATIVE FIRST",
-            12f, Ui.FOCUS, true), Ui.lp(-1, dp(31)))
-        heroText.addView(Ui.text(this, "Alles entdecken.\nEine Oberfläche.", 32f, Ui.TEXT, true),
-            Ui.lp(-1, dp(97)))
         heroText.addView(Ui.text(this,
-            "Filme, Serien, Anime und deine IPTV-Kataloge. " +
-                "Webseiten nur noch bei Bedarf öffnen.", 14f, Ui.SOFT),
-            Ui.lp(-1, dp(44)))
+            if (featured == null) "STREAMHUB ORIGINAL · DEINE MEDIATHEK"
+            else "●  AUS DEINEN VERBUNDENEN QUELLEN  ·  " +
+                (if (featured.kind == "vod") "FILM" else "SERIE"),
+            12f, Ui.FOCUS, true), Ui.lp(-1, dp(32)))
+        val title = Ui.text(this,
+            featured?.title ?: "Filme. Serien.\nEine App.", 36f, Ui.TEXT, true).apply {
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+        }
+        heroText.addView(title, Ui.lp(-1, dp(103)))
+        val subline = when {
+            featured != null -> featured.provider +
+                "  ·  Quelle auswählen und im StreamHUB-Player öffnen"
+            snapshot == null -> "Wir verbinden deine Mediathek mit deinen IPTV-Quellen."
+            else -> "Entdecke Inhalte oder verbinde deine eigenen Anbieter."
+        }
+        heroText.addView(Ui.text(this, subline, 15f, Ui.SOFT).apply {
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+        }, Ui.lp(-1, dp(48)))
         val actions = Ui.horizontal(this)
-        actions.addView(Ui.button(this, "▶  Filme entdecken", true) {
-            showPage(Page.MOVIES)
-        }, Ui.lp(dp(202), dp(48)).apply { rightMargin = dp(9) })
-        actions.addView(Ui.button(this, "📺  Live TV", true) {
-            showPage(Page.LIVE)
-        }, Ui.lp(dp(153), dp(48)).apply { rightMargin = dp(9) })
-        actions.addView(Ui.button(this, "⌕  Alle Quellen", true) {
+        val primary = Ui.button(this,
+            if (featured != null) "▶  QUELLE WÄHLEN" else "▶  FILME ENTDECKEN", true) {
+            if (featured == null) showPage(Page.MOVIES)
+            else {
+                returnFocusTag = "native:" + featured.key
+                showNativeDetail(featured)
+            }
+        }
+        actions.addView(primary, Ui.lp(dp(209), dp(53)).apply {
+            rightMargin = dp(12)
+        })
+        actions.addView(Ui.button(this,
+            if (featured != null) "♥  MERKEN" else "＋  QUELLEN VERBINDEN", true) {
+            if (featured == null) {
+                startActivity(Intent(this, MainActivity::class.java)
+                    .putExtra("native_entry", true))
+            } else {
+                val marked = watch.setFavorite(
+                    featured.key, featured.title, featured.kind)
+                Toast.makeText(this,
+                    if (marked) "In Meine Liste gespeichert" else "Aus Meine Liste entfernt",
+                    Toast.LENGTH_SHORT).show()
+            }
+        }, Ui.lp(dp(225), dp(53)).apply { rightMargin = dp(12) })
+        actions.addView(Ui.button(this, "⌕  SUCHE", true) {
             showPage(Page.SEARCH)
-        }, Ui.lp(dp(196), dp(48)))
-        heroText.addView(actions, Ui.lp(-1, dp(54)))
+        }, Ui.lp(dp(127), dp(53)))
+        heroText.addView(actions, Ui.lp(-1, dp(61)))
         hero.addView(heroText, FrameLayout.LayoutParams(-1, -1))
-        content.addView(hero, Ui.lp(-1, dp(259)).apply { bottomMargin = dp(13) })
+        content.addView(hero, Ui.lp(-1, dp(293)).apply {
+            bottomMargin = dp(13)
+        })
+        val loaded = snapshot
+        val films = loaded?.entries?.count { it.kind == "vod" } ?: 0
+        val series = loaded?.entries?.count { it.kind == "series" } ?: 0
+        val channels = loaded?.entries?.count { it.kind == "itv" } ?: 0
+        text(if (loaded == null)
+            "◌  Lade deine verbundenen Quellen …"
+        else "●  DEINE KATALOGE      " + films + " Filme   ·   " +
+            series + " Serien   ·   " + channels + " TV-Sender",
+            12f, Ui.FOCUS, 40)
 
         val saved = watch.recent(8)
         if (saved.isNotEmpty()) {
-            section("↺ Weiterschauen")
-            val group = saved.mapNotNull { entry ->
-                snapshot?.entries?.firstOrNull { it.key == entry.id }
+            section("Weitersehen")
+            val grouped = saved.mapNotNull { entry ->
+                loaded?.entries?.firstOrNull { it.key == entry.id }
             }
-            if (group.isNotEmpty()) nativeRail(group, 8)
-            else text("Wiedergabeverlauf gespeichert · Über »Weiterschauen« erneut suchen.", 13f)
+            if (grouped.isNotEmpty()) nativeRail(grouped, 8)
+            else text("Deinen letzten Titel findest du über »Weiterschauen«.", 13f)
         }
         sourcesShelf()
-        if (feedItems.isNotEmpty()) {
-            section("Direkt eingebundene Web-Feeds")
-            feedRail(feedItems.take(12))
-        } else {
-            content.addView(Ui.button(this, "＋  Öffentlichen Anbieter-Feed anbinden", true) {
-                startActivity(Intent(this, PublicFeedActivity::class.java))
-            }, Ui.lp(dp(354), dp(49)).apply { bottomMargin = dp(12) })
-        }
-        val websitePreviews = sites.sites().asSequence()
-            .filter { SourceSearchRouter.validHomepage(it) != null }
-            .flatMap { site ->
-                covers.cachedPreview(site)?.entries.orEmpty().asSequence()
-                    .map { site to it }
-            }.take(12).toList()
-        if (websitePreviews.isNotEmpty()) {
-            section("Öffentliche Webquellen-Vorschauen · keine Streamgarantie")
-            val host = Ui.vertical(this)
-            content.addView(host)
-            showWebPreviews(host, websitePreviews)
-        } else {
-            content.addView(Ui.button(this, "◉  Webquellen nativ entdecken", true) {
-                showPage(Page.WEB)
-            }, Ui.lp(dp(310), dp(48)).apply { bottomMargin = dp(13) })
-        }
         if (tmdb.hasCredential()) {
-            tmdbShelf("Beliebte Filme", "/movie/popular", "movie")
-            tmdbShelf("Serien-Highlights", "/tv/popular", "tv")
+            tmdbShelf("Filme entdecken", "/movie/popular", "movie")
+            tmdbShelf("Serien für dich", "/tv/popular", "tv")
             tmdbShelf("Anime entdecken", "/discover/tv", "tv",
                 mapOf("with_genres" to "16", "with_original_language" to "ja",
                     "sort_by" to "popularity.desc", "include_adult" to "false"))
         } else tmdbKeyNotice()
-        text("Filmdaten/Poster: TMDB. Anbieter-Katalogtreffer sind noch keine " +
-            "Garantie, dass ein Stream funktioniert.", 12f, Ui.MUTED, 80)
+
+        if (feedItems.isNotEmpty()) {
+            section("Weitere Inhalte aus deinen Feeds")
+            feedRail(feedItems.take(12))
+        }
+        val previews = sites.sites().asSequence()
+            .filter { SourceSearchRouter.validHomepage(it) != null }
+            .flatMap { site ->
+                covers.cachedPreview(site)?.entries.orEmpty().asSequence()
+                    .map { site to it }
+            }.take(8).toList()
+        if (previews.isNotEmpty()) {
+            section("Vorschau externer Anbieter")
+            val host = Ui.vertical(this)
+            content.addView(host)
+            showWebPreviews(host, previews)
+        }
+        text("TMDB liefert Metadaten und Poster. Film-Verfügbarkeit und " +
+            "Wiedergabe hängen von deinen tatsächlichen Quellen ab.",
+            12f, Ui.MUTED, 64)
     }
 
     private fun sourcesShelf() {
-        section("Aus deinen verbundenen Quellen")
+        section("Deine Streamingquellen")
         val snapshot = snapshot
         if (snapshot == null) {
             text("Lese deine konfigurierten IPTV-Kataloge …", 13f, Ui.MUTED)
@@ -339,8 +395,8 @@ class NativeHubActivity : Activity() {
             text("Noch keine Inhalte geladen. Verbinde in »Einstellungen« ein " +
                 "M3U-, Xtream- oder MAC-Portal.", 14f, Ui.SOFT, 80)
         } else {
-            val films = snapshot.byKind("vod").take(12)
-            val series = snapshot.byKind("series").take(12)
+            val films = uniqueOffers(snapshot.byKind("vod")).take(12)
+            val series = uniqueOffers(snapshot.byKind("series")).take(12)
             if (films.isNotEmpty()) {
                 section("Filme deiner Anbieter")
                 nativeRail(films, 12)
