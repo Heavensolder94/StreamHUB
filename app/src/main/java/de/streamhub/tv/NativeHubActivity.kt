@@ -55,6 +55,9 @@ class NativeHubActivity : Activity() {
     private lateinit var heading: TextView
     private lateinit var focusLabel: TextView
     private var feedItems = emptyList<PublicFeedEntry>()
+    /** Return to the same movie after closing a detail screen with the Back key. */
+    private var returnFocusTag: String? = null
+    private var detailPrimaryAction: View? = null
     private fun dp(n: Int) = (resources.displayMetrics.density * n + .5f).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,6 +107,7 @@ class NativeHubActivity : Activity() {
         currentTitle = null
         currentNative = null
         nativeDetailVisible = false
+        detailPrimaryAction = null
         generation++
         if (!keepLimit) limit = if (next == Page.LIVE) 80 else 48
         shell()
@@ -118,6 +122,29 @@ class NativeHubActivity : Activity() {
             Page.RECENT -> saved(false)
             Page.WEB -> websites()
         }
+        restoreCardFocus()
+    }
+
+    private fun restoreCardFocus() {
+        val tag = returnFocusTag ?: return
+        content.findViewWithTag<View>(tag)?.let { target ->
+            returnFocusTag = null
+            target.post {
+                if (!isFinishing && !isDestroyed && target.isAttachedToWindow) {
+                    target.requestFocus()
+                }
+            }
+        }
+    }
+
+    private fun focusDetailAction(view: View) {
+        detailPrimaryAction = view
+        view.post {
+            if (!isFinishing && !isDestroyed && view === detailPrimaryAction &&
+                view.isAttachedToWindow) {
+                view.requestFocus()
+            }
+        }
     }
 
     private fun shell() {
@@ -131,7 +158,7 @@ class NativeHubActivity : Activity() {
         root.addView(side, Ui.lp(dp(207), -1))
         side.addView(Ui.text(this, "▶ STREAMHUB", 21f, Ui.TEXT, true),
             Ui.lp(-1, dp(49)))
-        side.addView(Ui.text(this, "NATIVE PREMIUM · V2.9", 10f, Ui.FOCUS, true),
+        side.addView(Ui.text(this, "PREMIUM · V3.1", 10f, Ui.FOCUS, true),
             Ui.lp(-1, dp(42)))
         val menu = ScrollView(this).apply {
             isFocusable = false
@@ -149,13 +176,14 @@ class NativeHubActivity : Activity() {
             Page.SEARCH to "⌕  Suche",
             Page.WATCHLIST to "♥  Meine Liste",
             Page.RECENT to "↺  Weiterschauen",
-            Page.WEB to "◉  Anbieter & Feeds"
+            Page.WEB to "◉  Meine Quellen"
         )
         var selectedButton: TextView? = null
         labels.forEach { (screen, label) ->
             val button = Ui.button(this, label, true) { showPage(screen) }
             if (screen == page) {
                 button.setTextColor(Ui.FOCUS)
+                button.background = Ui.bg(0xFF1B3853.toInt(), 11f, Ui.FOCUS, this)
                 selectedButton = button
             }
             items.addView(button, Ui.lp(-1, dp(46)).apply {
@@ -169,7 +197,9 @@ class NativeHubActivity : Activity() {
             Ui.lp(-1, dp(36)))
 
         val right = Ui.vertical(this).apply {
-            setPadding(dp(26), dp(16), dp(21), 0)
+            setPadding(dp(26), dp(15), dp(21), 0)
+            clipChildren = false
+            clipToPadding = false
         }
         root.addView(right, LinearLayout.LayoutParams(0, -1, 1f))
         val top = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -705,6 +735,7 @@ class NativeHubActivity : Activity() {
         }
         scroll.addView(row)
         host.addView(scroll, Ui.lp(-1, dp(283)))
+        restoreCardFocus()
     }
 
     private fun tmdbCard(item: CatalogTitle): View {
@@ -736,8 +767,18 @@ class NativeHubActivity : Activity() {
         text.addView(Ui.text(this, item.year + " · TMDB",
             11f, Ui.SOFT), Ui.lp(-1, dp(24)))
         card.addView(text, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
-        Ui.focusCard(card, 14f, 1.075f)
-        card.setOnClickListener { showDetail(item) }
+        card.tag = "tmdb:" + item.identity
+        card.tag = "native:" + item.key
+        Ui.focusCard(card, 14f, 1.085f) { focused ->
+            if (focused && ::focusLabel.isInitialized) {
+                focusLabel.text = "●  AUSGEWÄHLT: " + item.name.take(57) +
+                    "  ·  Filmdetails mit OK öffnen"
+            }
+        }
+        card.setOnClickListener {
+            returnFocusTag = card.tag as String
+            showDetail(item)
+        }
         return card
     }
 
@@ -954,7 +995,10 @@ class NativeHubActivity : Activity() {
                     "  ·  " + count + " Quelle(n)  ·  OK für Details"
             }
         }
-        card.setOnClickListener { showNativeDetail(item) }
+        card.setOnClickListener {
+            returnFocusTag = card.tag as String
+            showNativeDetail(item)
+        }
         return card
     }
 
