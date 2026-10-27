@@ -743,6 +743,116 @@ class NativeHubActivity : Activity() {
     private fun uniqueOffers(items: List<NativeMediaSource>): List<NativeMediaSource> =
         items.distinctBy { it.kind + ":" + NativeSourceIndex.normalized(it.title) }
 
+    private fun feedRail(entries: List<PublicFeedEntry>) {
+        val scroll = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            isFocusable = false
+            clipToPadding = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
+        val line = Ui.horizontal(this).apply {
+            setPadding(dp(6), dp(8), dp(8), dp(16))
+            clipChildren = false
+            clipToPadding = false
+        }
+        entries.take(24).forEach { entry ->
+            val card = FrameLayout(this).apply {
+                background = Ui.bg(Ui.PANEL, 15f, context = this@NativeHubActivity)
+            }
+            card.addView(CinematicArtwork(this, entry.title, "Filme"),
+                FrameLayout.LayoutParams(-1, -1))
+            val poster = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
+            card.addView(poster, FrameLayout.LayoutParams(-1, -1))
+            covers.loadInto(poster, entry.coverUrl)
+            card.addView(View(this).apply {
+                background = Ui.gradient(this@NativeHubActivity,
+                    intArrayOf(0x180A111F, 0xE8080F1B.toInt()), 15f,
+                    GradientDrawable.Orientation.TOP_BOTTOM)
+            }, FrameLayout.LayoutParams(-1, -1))
+            val data = Ui.vertical(this).apply {
+                setPadding(dp(11), 0, dp(9), dp(11))
+            }
+            data.addView(Ui.text(this, entry.title, 16f, Ui.TEXT, true).apply {
+                maxLines = 2
+                ellipsize = TextUtils.TruncateAt.END
+            }, Ui.lp(-1, dp(54)))
+            data.addView(Ui.text(this,
+                (if (entry.videoUrl.isBlank()) "↗ ANBIETER" else "▶ DIREKT") +
+                    " · " + entry.provider, 10f, Ui.FOCUS, true).apply {
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            }, Ui.lp(-1, dp(25)))
+            card.addView(data, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
+            Ui.focusCard(card, 15f, 1.085f) { focus ->
+                if (focus && ::focusLabel.isInitialized) {
+                    focusLabel.text = "●  AUSGEWÄHLT: " + entry.title.take(56) +
+                        " · " + entry.provider + " · OK für Details"
+                }
+            }
+            card.setOnClickListener { openFeedEntry(entry) }
+            line.addView(card, Ui.lp(dp(170), dp(222)).apply {
+                rightMargin = dp(16)
+            })
+        }
+        scroll.addView(line)
+        content.addView(scroll, Ui.lp(-1, dp(257)))
+    }
+
+    private fun openFeedEntry(entry: PublicFeedEntry) {
+        val labels = if (entry.videoUrl.isBlank())
+            arrayOf("↗ Original beim Anbieter öffnen")
+        else arrayOf("▶ Video direkt in StreamHUB abspielen",
+            "↗ Original beim Anbieter öffnen")
+        AlertDialog.Builder(this).setTitle(entry.title)
+            .setMessage(entry.description.ifBlank {
+                "Öffentliche Feed-Quelle: " + entry.provider
+            } + "\n\nEs wird keine Verfügbarkeit aus anderen Webseiten behauptet.")
+            .setItems(labels) { _, index ->
+                if (index == 0 && entry.videoUrl.isNotBlank()) {
+                    startActivity(Intent(this, LiveTvPlayerActivity::class.java).apply {
+                        putExtra("direct_stream_url", entry.videoUrl)
+                        putExtra("direct_stream_title", entry.title)
+                        putExtra("direct_stream_is_live", false)
+                        putExtra("direct_allow_http", false)
+                        putExtra("history_id", "feed:" + entry.id)
+                        putExtra("history_kind", "vod")
+                    })
+                } else {
+                    startActivity(Intent(this, BrowserActivity::class.java).apply {
+                        putExtra("name", entry.provider + " · " + entry.title)
+                        putExtra("url", entry.pageUrl)
+                    })
+                }
+            }
+            .setNegativeButton("Abbrechen", null).show()
+    }
+
+    private fun feedMatches(name: String): List<PublicFeedEntry> {
+        val target = NativeSourceIndex.normalized(name)
+        return feedItems.filter {
+            NativeSourceIndex.normalized(it.title) == target
+        }.take(8)
+    }
+
+    private fun addFeedOffers(name: String) {
+        val matches = feedMatches(name)
+        if (matches.isEmpty()) return
+        section("◉ Öffentliche Feed-Angebote mit diesem Titel")
+        text("Die Übereinstimmung des Titels ist keine Bestätigung, " +
+            "dass es sich um denselben Film handelt oder er abspielbar ist.",
+            12f, Ui.MUTED, 65)
+        matches.forEach { offer ->
+            content.addView(Ui.button(this,
+                (if (offer.videoUrl.isNotBlank()) "▶ VIDEO" else "↗ WEBSITE") +
+                    " · " + offer.provider + " · " + offer.title.take(48), true) {
+                openFeedEntry(offer)
+            }, Ui.lp(-1, dp(54)).apply { bottomMargin = dp(8) })
+        }
+    }
+
     private fun nativeRail(items: List<NativeMediaSource>, count: Int = 12) {
         val scroll = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
@@ -867,6 +977,7 @@ class NativeHubActivity : Activity() {
             "Die tatsächliche Abspielbarkeit hängt von deinem Anbieter ab.",
             14f, Ui.SOFT, 76)
         renderOfferPicker(matches, item.title)
+        addFeedOffers(item.title)
         content.addView(Ui.button(this, if (watch.get(item.key)?.favorite == true)
             "♥ Aus Merkliste entfernen" else "♡ In Merkliste speichern", true) {
             val changed = watch.setFavorite(item.key, item.title, item.kind)
@@ -952,6 +1063,7 @@ class NativeHubActivity : Activity() {
             text("Kein Treffer im bisher geladenen IPTV-Ausschnitt. Das bedeutet nicht, " +
                 "dass der Titel nirgendwo verfügbar ist.", 14f, Ui.MUTED, 78)
         }
+        addFeedOffers(title.name)
         content.addView(Ui.button(this, "Weitere IPTV-Kataloge durchsuchen", true) {
             startActivity(Intent(this, UnifiedSearchActivity::class.java)
                 .putExtra("prefill_query", title.name))
