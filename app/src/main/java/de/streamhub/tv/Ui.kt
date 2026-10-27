@@ -30,18 +30,20 @@ internal object Ui {
     const val FOCUS_FILL = 0xFF2388CE.toInt()
 
     /** High-contrast DPAD focus treatment shared by all StreamHUB screens. */
-    fun focusCard(card: FrameLayout, radiusDp: Float = 15f, scale: Float = 1.07f) {
+    fun focusCard(card: FrameLayout, radiusDp: Float = 15f, scale: Float = 1.07f,
+        changed: ((Boolean) -> Unit)? = null) {
         card.isFocusable = true
         card.isClickable = true
         card.setOnFocusChangeListener { view, focused ->
+            changed?.invoke(focused)
             card.foreground = if (focused) {
-                bg(0x255AD6FF, radiusDp, FOCUS, card.context).apply {
-                    setStroke(card.context.dp(4), FOCUS)
+                bg(0x335AD6FF, radiusDp, FOCUS, card.context).apply {
+                    setStroke(card.context.dp(5), FOCUS)
                 }
             } else bg(Color.TRANSPARENT, radiusDp, Color.TRANSPARENT, card.context)
             view.animate().scaleX(if (focused) scale else 1f)
                 .scaleY(if (focused) scale else 1f).setDuration(145).start()
-            view.elevation = if (focused) card.context.dp(22).toFloat() else 0f
+            view.elevation = if (focused) card.context.dp(26).toFloat() else 0f
         }
         card.foreground = bg(Color.TRANSPARENT, radiusDp, Color.TRANSPARENT, card.context)
     }
