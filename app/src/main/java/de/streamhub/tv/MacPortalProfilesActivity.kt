@@ -4,6 +4,11 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.os.Bundle
 import android.text.InputType
+import android.text.InputFilter
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.content.Context
+import android.content.res.ColorStateList
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.CheckBox
@@ -163,10 +168,21 @@ class MacPortalProfilesActivity : Activity() {
             setText(existing?.source?.url.orEmpty())
         }
         val mac = EditText(this).apply {
-            hint = "00:1A:79:12:34:56"
+            hint = "00:1A:79:12:34:56  oder  001A79123456"
+            // Android/Google TV IMEs can treat VISIBLE_PASSWORD as a restricted
+            // password input, making remote-control entry unreliable. Use the
+            // standard text keyboard, uppercase hex and a real IME Done action.
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+            imeOptions = EditorInfo.IME_ACTION_DONE
             setSingleLine(true)
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            isFocusable = true
+            isFocusableInTouchMode = true
+            setSelectAllOnFocus(true)
+            filters = arrayOf(InputFilter.LengthFilter(17))
+            setTextColor(Ui.TEXT)
+            setHintTextColor(Ui.MUTED)
             setText(existing?.source?.mac.orEmpty())
+            backgroundTintList = ColorStateList.valueOf(Ui.FOCUS)
         }
         val http = CheckBox(this).apply {
             text = "Unsicheres HTTP ausdrücklich erlauben"
@@ -178,13 +194,24 @@ class MacPortalProfilesActivity : Activity() {
         }
         layout.addView(name, Ui.lp(-1, dp(51)))
         layout.addView(address, Ui.lp(-1, dp(51)))
-        layout.addView(mac, Ui.lp(-1, dp(51)))
+        layout.addView(Ui.text(this,
+            "MAC-ADRESSE · hier eingeben oder Taste darunter wählen", 12f, Ui.FOCUS, true),
+            Ui.lp(-1, dp(28)))
+        layout.addView(mac, Ui.lp(-1, dp(54)))
+        layout.addView(Ui.button(this, "⌨ MAC-Tastatur öffnen", true) {
+            mac.requestFocus()
+            mac.setSelection(mac.text?.length ?: 0)
+            mac.post {
+                (getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)
+                    ?.showSoftInput(mac, InputMethodManager.SHOW_IMPLICIT)
+            }
+        }, Ui.lp(-1, dp(48)))
         layout.addView(http, Ui.lp(-1, dp(43)))
         layout.addView(activate, Ui.lp(-1, dp(43)))
         layout.addView(Ui.text(this,
-            "Ein Profil kann jederzeit deaktiviert werden, ohne es zu löschen. " +
-                "URL und MAC werden lokal verschlüsselt gespeichert. " +
-                "Über HTTP kann die MAC im Netzwerk sichtbar sein.",
+            "MAC: 12 Hex-Zeichen, Doppelpunkte optional; beim Speichern werden " +
+                "sie ergänzt. Die Profil-Liste zeigt MACs nur verkürzt. " +
+                "URL und MAC werden verschlüsselt gespeichert.",
             12f, Ui.MUTED), Ui.lp(-1, dp(81)))
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "Portalprofil hinzufügen" else "Portalprofil bearbeiten")
@@ -208,6 +235,10 @@ class MacPortalProfilesActivity : Activity() {
             }
         }
         dialog.show()
+        dialog.window?.setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+        )
     }
 
     override fun onDestroy() {
