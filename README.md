@@ -1,3 +1,27 @@
+# StreamHUB Premium V3.0 – Direkte Wiedergabe aus meinen Quellen
+
+## Das neue TV-Erlebnis
+
+**Ein Film → eine Detailseite → ▶ „Über meine Quellen abspielen“.** Die App zeigt direkt nutzbare IPTV-Quellen und zugeordnete Medienlinks gemeinsam an, ohne für die Wiedergabe einen Browser oder Kodi zu starten.
+
+- **M3U, MAC/Stalker und Xtream:** Weiterhin native Media3-Wiedergabe über die vorhandenen angebundenen IPTV-Provider. Nicht aktive MAC-Profile werden nicht abgefragt.
+- **Direkte Videolinks aus eigenen Webquellen:** Ein Film erhält über `＋ Streamlink aus meiner Quelle zuordnen` einen oder mehrere explizite HTTPS-Medienlinks (z. B. `.m3u8`, `.mpd`, `.mp4`). Der Nutzer kann beim Eintragen eine seiner gespeicherten Quellen als Namen auswählen. Quelle und potenziell tokenhaltige URL werden über **Android Keystore AES-GCM** verschlüsselt auf dem TV gespeichert; StreamHUB öffnet den Link im eigenen nativen Player. Eigene Links lassen sich vom Filmbildschirm aus wieder entfernen.
+- **Öffentliche native Web-Feeds:** Zusätzliche RSS-, Atom- und JSON-Feed-Adapter können nach manueller Konfiguration öffentliche Titel, Poster, Originalseiten-Links und explizit veröffentlichte Videodateien nativ anzeigen. Bis zu 24 Feedprofile gespeichert, 12 aktiviert pro Refresh; Quellen können einzeln aktiviert, deaktiviert und gelöscht werden.
+- **Premium-TV-Design:** Stärkere Fernbedienungsfokusanzeige (kräftig blau/türkis, 5dp Rahmen), fokussierter Titelnamenhinweis, native Film-/Anbieter-Poster und Gruppierung nach Titel statt ausschließlich nach Quellenkacheln. Native Anbieter-Feeds und passende Feed-Titel erscheinen in Startseite, Suche und Quellenangeboten.
+
+## Grenzen – wichtig
+
+- Eine **normale externe Webseite** (z. B. als gespeichertes Lesezeichen) liefert **nicht automatisch** eine native Video-URL. Von einer Homepage oder einem eingebetteten Player wird nichts extrahiert. Ist kein eigener API-/Feed-/Videolink verfügbar, bleibt der StreamHUB-Webbrowser der Fallback.
+- Keine DRM-, Login-, Bezahlschranken- oder CAPTCHA-Umgehung. Passwortgeschützte oder signierte Streams können zusätzliche vom Anbieter vorgegebene Header oder Lizenzen benötigen, die generische direkte Links nicht abdecken. Ein Video-Link, dessen Token abläuft, kann später ausfallen.
+- Gleichnamige Katalogtitel von TMDB und IPTV werden nur anhand normalisierter Titel verglichen. Eine Übereinstimmung ist **kein verifizierter Identitäts- oder Wiedergabenachweis**.
+- Die Feeds werden nur bei öffentlichem HTTPS-Zugriff und in begrenztem Umfang eingelesen. Ohne aktiven, autorisierten Testanbieter können wir die tatsächliche Wiedergabe erst auf dem Android-TV-Gerät überprüfen.
+- StreamHUB verwendet weiterhin die GitHub-Releases-Updateprüfung und behält die alte Quellen-/Setup-Oberfläche bei.
+
+## Installation
+
+GitHub Actions → erfolgreicher „Build Android TV APK“-Lauf → **Artifacts** → `StreamHub-Premium-V3.0-debug-apk` → ZIP entpacken → `app-debug.apk`. Auf der Xiaomi TV Box S (3. Generation) kann die APK ohne USB-Stick über LocalSend übertragen werden. Die Debug-APK ist nur über eine gleich signierte bisherige App installierbar; vor einem eventuellen Deinstallieren Appdaten sichern.
+
+---
 # StreamHUB Premium V2.9 — Native-First Android TV
 
 **Neu:** Beim Start der App öffnet sich direkt **NativeHubActivity**, eine vollständig native Android-TV-Oberfläche für Filme, Serien, Anime, Live-TV, Suche, Favoriten und Weiterschauen. Die bisherige StreamHUB-Verwaltung bleibt unter **⚙ Quellen & Setup** erreichbar. Auch das signierte GitHub-Releases-Update-System wird weiterhin über die neue Startseite geprüft.

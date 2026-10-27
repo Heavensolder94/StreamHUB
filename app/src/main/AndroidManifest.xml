@@ -76,6 +76,10 @@
             android:exported="false"
             android:screenOrientation="landscape" />
         <activity
+            android:name=".PublicFeedActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
             android:name=".NativeHubActivity"
             android:exported="true"
             android:screenOrientation="landscape">
