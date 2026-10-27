@@ -1,3 +1,27 @@
+# StreamHUB Premium 3.1 — TV-Erlebnis, nicht nur weitere Funktionen
+
+Diese Version überarbeitet gezielt den **Android-TV-Ablauf**. Sie erhält die vorhandenen Profile, Feed-/Katalogadapter, den Media3-Player und die GitHub-Releases-Updateprüfung.
+
+## Bedienung auf dem Fernseher
+
+- **Startseite mit Inhalt:** Wenn in den verbundenen Xtream/MAC-Katalogen ein Film oder eine Serie geladen wurde, wird dieser Titel im großen Hero-Bereich vorgestellt. Der »Quelle wählen«-Knopf führt zu seiner nativen Detailseite. Ohne katalogisierte Quelle erscheint eine ehrliche Entdecken-/Verbinden-Ansicht.
+- **Ein klarer Play-Button:** Die Film-/Serien-Detailseite zeigt eine primäre »Jetzt ansehen · Quelle wählen«-Aktion. Doppelte Anbieterlisten und mehrfach wiederholte Player-Schaltflächen wurden dort zugunsten einer einheitlichen Quellenwahl entfernt.
+- **Komplette native Quellenwahl:** Die Auswahl von eigenen M3U/MAC/Xtream-Anbietern, direkt verlinkten Medien und per RSS/Atom/JSON-Feed bereitgestellten Videos erscheint als **eigener fernbedienbarer Bildschirm** mit großen, fokussierbaren Angeboten. Nicht direkt abspielbare Feed-Links werden getrennt als externe Webseiten gekennzeichnet; Benutzer können eigene Video-Links ergänzen und mehr IPTV-Katalogseiten durchsuchen.
+- **Deutliches Auswahl-Feedback:** Ausgewählte Kacheln und Quellenangebote bekommen türkisfarbene Umrandungen und Zoom. Film-/Serienkacheln werden stärker im Posterformat dargestellt; Live-TV behält ein breiteres Format. Bei Film-Detailansichten und der Quellenwahl landet der Fokus **auf der Hauptaktion statt zurück in der Seitenleiste**.
+- **Back-Navigation:** Bei Rückkehr aus Film-/Serien-Detailseiten wird die zuvor ausgewählte Kachel nach Möglichkeit wieder fokussiert, auch wenn sie nach einem asynchronen TMDB-Refresh geladen wird. Beim Nachladen lokaler IPTV-/Feed-Kataloge versucht StreamHUB ebenfalls, die aktuelle Auswahl zu erhalten.
+
+**Wichtig:** Dies ist eine Code- und Android-CI-geprüfte UI-Überarbeitung, **kein bereits durchgeführter Test auf der Xiaomi TV Box S (3. Generation)**. Ein erfolgreicher Debug-Build belegt weder ruckelfreies DPAD-Verhalten noch garantierte Wiedergabe bei allen Anbietern.
+
+## Externe Webseiten
+
+Webseiten mit gespeicherter HTTPS-Startadresse sind **nicht automatisch Medienanbieter mit direkter Videodatei**. Native Titel und Wiedergabe sind bei aktiven M3U-, Xtream- oder MAC-Katalogen, bereitgestellten Videofeeds und explizit vom Nutzer zugeordneten unterstützten Direktlinks möglich. Bei gewöhnlichen externen Webseiten bleibt der StreamHUB-Browser erforderlich. Keine Umgehung von DRM, Logins, Paywalls oder Captchas.
+
+## Installation
+
+GitHub Actions → erfolgreicher Build → **Artifacts** → `StreamHub-Premium-V3.1-debug-apk` → ZIP entpacken → `app-debug.apk` mit LocalSend auf die Xiaomi TV Box übertragen. Debug- und signierte Release-APKs sind nur bei identischer App-Signatur gegenseitig aktualisierbar. Nicht vorschnell deinstallieren: App-Daten und verschlüsselte Profile könnten verloren gehen.
+
+---
+
 # StreamHUB Premium V3.0 – Direkte Wiedergabe aus meinen Quellen
 
 ## Das neue TV-Erlebnis

@@ -44,6 +44,7 @@ class NativeHubActivity : Activity() {
     private var page = Page.HOME
     private var currentTitle: CatalogTitle? = null
     private var nativeDetailVisible = false
+    private var sourcePickerVisible = false
     private var currentNative: NativeMediaSource? = null
     private val updater by lazy { GithubUpdateManager(this) }
     private var generation = 0
@@ -55,6 +56,9 @@ class NativeHubActivity : Activity() {
     private lateinit var heading: TextView
     private lateinit var focusLabel: TextView
     private var feedItems = emptyList<PublicFeedEntry>()
+    /** Return to the same movie after closing a detail screen with the Back key. */
+    private var returnFocusTag: String? = null
+    private var detailPrimaryAction: View? = null
     private fun dp(n: Int) = (resources.displayMetrics.density * n + .5f).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,8 +81,11 @@ class NativeHubActivity : Activity() {
             if (isDestroyed || isFinishing) return@refresh
             if (feedItems != entries) {
                 feedItems = entries
-                if (currentTitle == null && currentNative == null) showPage(page)
-                else if (currentTitle != null) showDetail(currentTitle!!)
+                if (sourcePickerVisible) return@refresh
+                if (currentTitle == null && currentNative == null) {
+                    rememberFocusedCard()
+                    showPage(page)
+                } else if (currentTitle != null) showDetail(currentTitle!!)
                 else currentNative?.let { showNativeDetail(it) }
             }
         }
@@ -92,18 +99,32 @@ class NativeHubActivity : Activity() {
             waitingSources = false
             snapshot = result
             when {
+                sourcePickerVisible -> Unit // Picker keeps control until Back.
                 currentTitle != null -> showDetail(currentTitle!!)
                 currentNative != null -> showNativeDetail(currentNative!!)
-                else -> showPage(page)
+                else -> {
+                    rememberFocusedCard()
+                    showPage(page)
+                }
             }
         }
     }
 
+    private fun rememberFocusedCard() {
+        val identifier = currentFocus?.tag as? String ?: return
+        if (identifier.startsWith("tmdb:") || identifier.startsWith("native:")) {
+            returnFocusTag = identifier
+        }
+    }
+
     private fun showPage(next: Page, keepLimit: Boolean = false) {
+        if (next != page) returnFocusTag = null
         page = next
         currentTitle = null
         currentNative = null
         nativeDetailVisible = false
+        sourcePickerVisible = false
+        detailPrimaryAction = null
         generation++
         if (!keepLimit) limit = if (next == Page.LIVE) 80 else 48
         shell()
@@ -118,6 +139,29 @@ class NativeHubActivity : Activity() {
             Page.RECENT -> saved(false)
             Page.WEB -> websites()
         }
+        restoreCardFocus()
+    }
+
+    private fun restoreCardFocus() {
+        val tag = returnFocusTag ?: return
+        content.findViewWithTag<View>(tag)?.let { target ->
+            returnFocusTag = null
+            target.post {
+                if (!isFinishing && !isDestroyed && target.isAttachedToWindow) {
+                    target.requestFocus()
+                }
+            }
+        }
+    }
+
+    private fun focusDetailAction(view: View) {
+        detailPrimaryAction = view
+        view.post {
+            if (!isFinishing && !isDestroyed && view === detailPrimaryAction &&
+                view.isAttachedToWindow) {
+                view.requestFocus()
+            }
+        }
     }
 
     private fun shell() {
@@ -131,7 +175,7 @@ class NativeHubActivity : Activity() {
         root.addView(side, Ui.lp(dp(207), -1))
         side.addView(Ui.text(this, "▶ STREAMHUB", 21f, Ui.TEXT, true),
             Ui.lp(-1, dp(49)))
-        side.addView(Ui.text(this, "NATIVE PREMIUM · V2.9", 10f, Ui.FOCUS, true),
+        side.addView(Ui.text(this, "PREMIUM · V3.1", 10f, Ui.FOCUS, true),
             Ui.lp(-1, dp(42)))
         val menu = ScrollView(this).apply {
             isFocusable = false
@@ -149,13 +193,14 @@ class NativeHubActivity : Activity() {
             Page.SEARCH to "⌕  Suche",
             Page.WATCHLIST to "♥  Meine Liste",
             Page.RECENT to "↺  Weiterschauen",
-            Page.WEB to "◉  Anbieter & Feeds"
+            Page.WEB to "◉  Meine Quellen"
         )
         var selectedButton: TextView? = null
         labels.forEach { (screen, label) ->
             val button = Ui.button(this, label, true) { showPage(screen) }
             if (screen == page) {
                 button.setTextColor(Ui.FOCUS)
+                button.background = Ui.bg(0xFF1B3853.toInt(), 11f, Ui.FOCUS, this)
                 selectedButton = button
             }
             items.addView(button, Ui.lp(-1, dp(46)).apply {
@@ -169,7 +214,9 @@ class NativeHubActivity : Activity() {
             Ui.lp(-1, dp(36)))
 
         val right = Ui.vertical(this).apply {
-            setPadding(dp(26), dp(16), dp(21), 0)
+            setPadding(dp(26), dp(15), dp(21), 0)
+            clipChildren = false
+            clipToPadding = false
         }
         root.addView(right, LinearLayout.LayoutParams(0, -1, 1f))
         val top = Ui.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -217,89 +264,145 @@ class NativeHubActivity : Activity() {
     }
 
     private fun home() {
+        // Make the first playable catalog item the hero when one is configured.
+        // When no provider is connected, use a useful onboarding state instead
+        // of pretending that an arbitrary movie can be watched.
+        val featured = snapshot?.entries?.firstOrNull { it.kind == "vod" }
+            ?: snapshot?.entries?.firstOrNull { it.kind == "series" }
         val hero = FrameLayout(this).apply {
+            background = Ui.bg(0xFF142336.toInt(), 20f,
+                context = this@NativeHubActivity)
             clipToOutline = true
-            background = Ui.bg(Ui.PANEL, 18f, context = this@NativeHubActivity)
         }
-        hero.addView(CinematicArtwork(this, "STREAMHUB NATIVE", "Filme", hero = true),
+        hero.addView(CinematicArtwork(this,
+            featured?.title ?: "StreamHUB", "Filme", hero = true),
             FrameLayout.LayoutParams(-1, -1))
+        val mediaArt = featured?.mac?.image.orEmpty().ifBlank {
+            featured?.xtream?.raw?.optString("cover").orEmpty().ifBlank {
+                featured?.xtream?.raw?.optString("stream_icon").orEmpty()
+            }
+        }
+        if (mediaArt.startsWith("https://")) {
+            val backdrop = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
+            hero.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
+            covers.loadInto(backdrop, mediaArt)
+        }
         hero.addView(View(this).apply {
             background = Ui.gradient(this@NativeHubActivity,
-                intArrayOf(0xF4080F1E.toInt(), 0xC8163250.toInt(), 0x33101B35),
-                18f)
+                intArrayOf(0xFA07101F.toInt(), 0xF0091930.toInt(), 0x33102340),
+                20f)
         }, FrameLayout.LayoutParams(-1, -1))
         val heroText = Ui.vertical(this).apply {
-            setPadding(dp(28), dp(17), dp(20), dp(12))
+            setPadding(dp(29), dp(19), dp(22), dp(13))
         }
-        heroText.addView(Ui.text(this, "STREAMHUB · NATIVE FIRST",
-            12f, Ui.FOCUS, true), Ui.lp(-1, dp(31)))
-        heroText.addView(Ui.text(this, "Alles entdecken.\nEine Oberfläche.", 32f, Ui.TEXT, true),
-            Ui.lp(-1, dp(97)))
         heroText.addView(Ui.text(this,
-            "Filme, Serien, Anime und deine IPTV-Kataloge. " +
-                "Webseiten nur noch bei Bedarf öffnen.", 14f, Ui.SOFT),
-            Ui.lp(-1, dp(44)))
+            if (featured == null) "STREAMHUB ORIGINAL · DEINE MEDIATHEK"
+            else "●  AUS DEINEN VERBUNDENEN QUELLEN  ·  " +
+                (if (featured.kind == "vod") "FILM" else "SERIE"),
+            12f, Ui.FOCUS, true), Ui.lp(-1, dp(32)))
+        val title = Ui.text(this,
+            featured?.title ?: "Filme. Serien.\nEine App.", 36f, Ui.TEXT, true).apply {
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+        }
+        heroText.addView(title, Ui.lp(-1, dp(103)))
+        val subline = when {
+            featured != null -> featured.provider +
+                "  ·  Quelle auswählen und im StreamHUB-Player öffnen"
+            snapshot == null -> "Wir verbinden deine Mediathek mit deinen IPTV-Quellen."
+            else -> "Entdecke Inhalte oder verbinde deine eigenen Anbieter."
+        }
+        heroText.addView(Ui.text(this, subline, 15f, Ui.SOFT).apply {
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+        }, Ui.lp(-1, dp(48)))
         val actions = Ui.horizontal(this)
-        actions.addView(Ui.button(this, "▶  Filme entdecken", true) {
-            showPage(Page.MOVIES)
-        }, Ui.lp(dp(202), dp(48)).apply { rightMargin = dp(9) })
-        actions.addView(Ui.button(this, "📺  Live TV", true) {
-            showPage(Page.LIVE)
-        }, Ui.lp(dp(153), dp(48)).apply { rightMargin = dp(9) })
-        actions.addView(Ui.button(this, "⌕  Alle Quellen", true) {
+        val primary = Ui.button(this,
+            if (featured != null) "▶  QUELLE WÄHLEN" else "▶  FILME ENTDECKEN", true) {
+            if (featured == null) showPage(Page.MOVIES)
+            else {
+                returnFocusTag = "native:" + featured.key
+                showNativeDetail(featured)
+            }
+        }
+        actions.addView(primary, Ui.lp(dp(209), dp(53)).apply {
+            rightMargin = dp(12)
+        })
+        actions.addView(Ui.button(this,
+            if (featured != null) "♥  MERKEN" else "＋  QUELLEN VERBINDEN", true) {
+            if (featured == null) {
+                startActivity(Intent(this, MainActivity::class.java)
+                    .putExtra("native_entry", true))
+            } else {
+                val marked = watch.setFavorite(
+                    featured.key, featured.title, featured.kind)
+                Toast.makeText(this,
+                    if (marked) "In Meine Liste gespeichert" else "Aus Meine Liste entfernt",
+                    Toast.LENGTH_SHORT).show()
+            }
+        }, Ui.lp(dp(225), dp(53)).apply { rightMargin = dp(12) })
+        actions.addView(Ui.button(this, "⌕  SUCHE", true) {
             showPage(Page.SEARCH)
-        }, Ui.lp(dp(196), dp(48)))
-        heroText.addView(actions, Ui.lp(-1, dp(54)))
+        }, Ui.lp(dp(127), dp(53)))
+        heroText.addView(actions, Ui.lp(-1, dp(61)))
         hero.addView(heroText, FrameLayout.LayoutParams(-1, -1))
-        content.addView(hero, Ui.lp(-1, dp(259)).apply { bottomMargin = dp(13) })
+        content.addView(hero, Ui.lp(-1, dp(293)).apply {
+            bottomMargin = dp(13)
+        })
+        val loaded = snapshot
+        val films = loaded?.entries?.count { it.kind == "vod" } ?: 0
+        val series = loaded?.entries?.count { it.kind == "series" } ?: 0
+        val channels = loaded?.entries?.count { it.kind == "itv" } ?: 0
+        text(if (loaded == null)
+            "◌  Lade deine verbundenen Quellen …"
+        else "●  DEINE KATALOGE      " + films + " Filme   ·   " +
+            series + " Serien   ·   " + channels + " TV-Sender",
+            12f, Ui.FOCUS, 40)
 
         val saved = watch.recent(8)
         if (saved.isNotEmpty()) {
-            section("↺ Weiterschauen")
-            val group = saved.mapNotNull { entry ->
-                snapshot?.entries?.firstOrNull { it.key == entry.id }
+            section("Weitersehen")
+            val grouped = saved.mapNotNull { entry ->
+                loaded?.entries?.firstOrNull { it.key == entry.id }
             }
-            if (group.isNotEmpty()) nativeRail(group, 8)
-            else text("Wiedergabeverlauf gespeichert · Über »Weiterschauen« erneut suchen.", 13f)
+            if (grouped.isNotEmpty()) nativeRail(grouped, 8)
+            else text("Deinen letzten Titel findest du über »Weiterschauen«.", 13f)
         }
         sourcesShelf()
-        if (feedItems.isNotEmpty()) {
-            section("Direkt eingebundene Web-Feeds")
-            feedRail(feedItems.take(12))
-        } else {
-            content.addView(Ui.button(this, "＋  Öffentlichen Anbieter-Feed anbinden", true) {
-                startActivity(Intent(this, PublicFeedActivity::class.java))
-            }, Ui.lp(dp(354), dp(49)).apply { bottomMargin = dp(12) })
-        }
-        val websitePreviews = sites.sites().asSequence()
-            .filter { SourceSearchRouter.validHomepage(it) != null }
-            .flatMap { site ->
-                covers.cachedPreview(site)?.entries.orEmpty().asSequence()
-                    .map { site to it }
-            }.take(12).toList()
-        if (websitePreviews.isNotEmpty()) {
-            section("Öffentliche Webquellen-Vorschauen · keine Streamgarantie")
-            val host = Ui.vertical(this)
-            content.addView(host)
-            showWebPreviews(host, websitePreviews)
-        } else {
-            content.addView(Ui.button(this, "◉  Webquellen nativ entdecken", true) {
-                showPage(Page.WEB)
-            }, Ui.lp(dp(310), dp(48)).apply { bottomMargin = dp(13) })
-        }
         if (tmdb.hasCredential()) {
-            tmdbShelf("Beliebte Filme", "/movie/popular", "movie")
-            tmdbShelf("Serien-Highlights", "/tv/popular", "tv")
+            tmdbShelf("Filme entdecken", "/movie/popular", "movie")
+            tmdbShelf("Serien für dich", "/tv/popular", "tv")
             tmdbShelf("Anime entdecken", "/discover/tv", "tv",
                 mapOf("with_genres" to "16", "with_original_language" to "ja",
                     "sort_by" to "popularity.desc", "include_adult" to "false"))
         } else tmdbKeyNotice()
-        text("Filmdaten/Poster: TMDB. Anbieter-Katalogtreffer sind noch keine " +
-            "Garantie, dass ein Stream funktioniert.", 12f, Ui.MUTED, 80)
+
+        if (feedItems.isNotEmpty()) {
+            section("Weitere Inhalte aus deinen Feeds")
+            feedRail(feedItems.take(12))
+        }
+        val previews = sites.sites().asSequence()
+            .filter { SourceSearchRouter.validHomepage(it) != null }
+            .flatMap { site ->
+                covers.cachedPreview(site)?.entries.orEmpty().asSequence()
+                    .map { site to it }
+            }.take(8).toList()
+        if (previews.isNotEmpty()) {
+            section("Vorschau externer Anbieter")
+            val host = Ui.vertical(this)
+            content.addView(host)
+            showWebPreviews(host, previews)
+        }
+        text("TMDB liefert Metadaten und Poster. Film-Verfügbarkeit und " +
+            "Wiedergabe hängen von deinen tatsächlichen Quellen ab.",
+            12f, Ui.MUTED, 64)
     }
 
     private fun sourcesShelf() {
-        section("Aus deinen verbundenen Quellen")
+        section("Deine Streamingquellen")
         val snapshot = snapshot
         if (snapshot == null) {
             text("Lese deine konfigurierten IPTV-Kataloge …", 13f, Ui.MUTED)
@@ -309,8 +412,8 @@ class NativeHubActivity : Activity() {
             text("Noch keine Inhalte geladen. Verbinde in »Einstellungen« ein " +
                 "M3U-, Xtream- oder MAC-Portal.", 14f, Ui.SOFT, 80)
         } else {
-            val films = snapshot.byKind("vod").take(12)
-            val series = snapshot.byKind("series").take(12)
+            val films = uniqueOffers(snapshot.byKind("vod")).take(12)
+            val series = uniqueOffers(snapshot.byKind("series")).take(12)
             if (films.isNotEmpty()) {
                 section("Filme deiner Anbieter")
                 nativeRail(films, 12)
@@ -705,6 +808,7 @@ class NativeHubActivity : Activity() {
         }
         scroll.addView(row)
         host.addView(scroll, Ui.lp(-1, dp(283)))
+        restoreCardFocus()
     }
 
     private fun tmdbCard(item: CatalogTitle): View {
@@ -736,8 +840,17 @@ class NativeHubActivity : Activity() {
         text.addView(Ui.text(this, item.year + " · TMDB",
             11f, Ui.SOFT), Ui.lp(-1, dp(24)))
         card.addView(text, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
-        Ui.focusCard(card, 14f, 1.075f)
-        card.setOnClickListener { showDetail(item) }
+        card.tag = "tmdb:" + item.identity
+        Ui.focusCard(card, 14f, 1.085f) { focused ->
+            if (focused && ::focusLabel.isInitialized) {
+                focusLabel.text = "●  AUSGEWÄHLT: " + item.name.take(57) +
+                    "  ·  Filmdetails mit OK öffnen"
+            }
+        }
+        card.setOnClickListener {
+            returnFocusTag = card.tag as String
+            showDetail(item)
+        }
         return card
     }
 
@@ -866,32 +979,40 @@ class NativeHubActivity : Activity() {
             clipToPadding = false
             clipChildren = false
         }
+        val isLive = items.firstOrNull()?.kind == "itv"
+        val tileHeight = if (isLive) 166 else 233
+        val tileWidth = if (isLive) 220 else 166
         uniqueOffers(items).take(count).forEach { native ->
-            row.addView(nativeCard(native), Ui.lp(dp(177), dp(182)).apply {
-                rightMargin = dp(14)
+            row.addView(nativeCard(native), Ui.lp(dp(tileWidth), dp(tileHeight)).apply {
+                rightMargin = dp(15)
             })
         }
         scroll.addView(row)
-        content.addView(scroll, Ui.lp(-1, dp(212)))
+        content.addView(scroll, Ui.lp(-1, dp(tileHeight + 31)))
     }
 
     private fun nativeGrid(items: List<NativeMediaSource>, maxCount: Int) {
         val distinct = uniqueOffers(items)
         val visible = distinct.take(maxCount)
         visible.chunked(4).forEach { four ->
+            val tileHeight = if (four.firstOrNull()?.kind == "itv") 166 else 226
             val row = Ui.horizontal(this).apply {
                 clipToPadding = false
                 clipChildren = false
             }
             four.forEach { item ->
-                row.addView(nativeCard(item), LinearLayout.LayoutParams(0, dp(163), 1f)
-                    .apply { rightMargin = dp(13); bottomMargin = dp(13) })
+                row.addView(nativeCard(item),
+                    LinearLayout.LayoutParams(0, dp(tileHeight), 1f).apply {
+                        rightMargin = dp(15); bottomMargin = dp(13)
+                    })
             }
             repeat(4 - four.size) {
-                row.addView(View(this), LinearLayout.LayoutParams(0, dp(163), 1f)
-                    .apply { rightMargin = dp(13) })
+                row.addView(View(this),
+                    LinearLayout.LayoutParams(0, dp(tileHeight), 1f).apply {
+                        rightMargin = dp(15)
+                    })
             }
-            content.addView(row, Ui.lp(-1, dp(180)))
+            content.addView(row, Ui.lp(-1, dp(tileHeight + 17)))
         }
         if (distinct.size > maxCount) {
             content.addView(Ui.button(this,
@@ -947,6 +1068,7 @@ class NativeHubActivity : Activity() {
             card.addView(image, 1, FrameLayout.LayoutParams(-1, -1))
             covers.loadInto(image, mediaArt)
         }
+        card.tag = "native:" + item.key
         Ui.focusCard(card, 14f, 1.085f) { focused ->
             if (focused && ::focusLabel.isInitialized) {
                 val count = snapshot?.lookup(item.kind, item.title)?.size ?: 1
@@ -954,13 +1076,17 @@ class NativeHubActivity : Activity() {
                     "  ·  " + count + " Quelle(n)  ·  OK für Details"
             }
         }
-        card.setOnClickListener { showNativeDetail(item) }
+        card.setOnClickListener {
+            returnFocusTag = card.tag as String
+            showNativeDetail(item)
+        }
         return card
     }
 
     private fun showNativeDetail(item: NativeMediaSource) {
         currentTitle = null
         currentNative = item
+        sourcePickerVisible = false
         nativeDetailVisible = true
         generation++
         shell()
@@ -977,12 +1103,16 @@ class NativeHubActivity : Activity() {
         text(matches.size.toString() + " Katalogeintrag/Einträge mit diesem Titel. " +
             "Die tatsächliche Abspielbarkeit hängt von deinem Anbieter ab.",
             14f, Ui.SOFT, 76)
-        content.addView(Ui.button(this, "▶  Über meine Quellen abspielen", true) {
+        val primary = Ui.button(this, "▶  ÜBER MEINE QUELLEN ABSPIELEN", true) {
             chooseMySource(item.kind, item.title)
-        }, Ui.lp(dp(345), dp(58)).apply { bottomMargin = dp(12) })
-        renderOfferPicker(matches, item.title)
-        addFeedOffers(item.title)
-        addDirectSourceButtons(item.kind, item.title)
+        }
+        content.addView(primary, Ui.lp(dp(374), dp(62)).apply {
+            bottomMargin = dp(11)
+        })
+        content.addView(Ui.button(this, "＋ Weitere Quelle hinzufügen", true) {
+            addDirectSourceDialog(item.kind, item.title)
+        }, Ui.lp(dp(294), dp(48)).apply { bottomMargin = dp(14) })
+        focusDetailAction(primary)
         content.addView(Ui.button(this, if (watch.get(item.key)?.favorite == true)
             "♥ Aus Merkliste entfernen" else "♡ In Merkliste speichern", true) {
             val changed = watch.setFavorite(item.key, item.title, item.kind)
@@ -1021,6 +1151,7 @@ class NativeHubActivity : Activity() {
     private fun showDetail(title: CatalogTitle) {
         currentTitle = title
         currentNative = null
+        sourcePickerVisible = false
         nativeDetailVisible = true
         generation++
         shell()
@@ -1060,19 +1191,25 @@ class NativeHubActivity : Activity() {
         val kind = if (title.kind == "movie") "vod" else "series"
         val matchingOffers = snapshot?.lookup(kind, title.name).orEmpty()
         section("▶ Direkt über meine Quellen abspielen")
-        content.addView(Ui.button(this, "▶  JETZT ANSEHEN · QUELLE WÄHLEN", true) {
+        val primary = Ui.button(this, "▶  JETZT ANSEHEN · QUELLE WÄHLEN", true) {
             chooseMySource(kind, title.name)
-        }, Ui.lp(dp(365), dp(60)).apply { bottomMargin = dp(13) })
-        if (matchingOffers.isNotEmpty()) {
-            text("Katalogtreffer mit gleichem Namen – Anbieterzugriff und Abspielbarkeit " +
-                "noch nicht geprüft. Bitte Quelle auswählen.", 12f, Ui.MUTED, 65)
-            renderOfferPicker(matchingOffers, title.name)
-        } else {
-            text("Kein Treffer im bisher geladenen IPTV-Ausschnitt. Das bedeutet nicht, " +
-                "dass der Titel nirgendwo verfügbar ist.", 14f, Ui.MUTED, 78)
         }
-        addFeedOffers(title.name)
-        addDirectSourceButtons(kind, title.name)
+        content.addView(primary, Ui.lp(dp(374), dp(62)).apply {
+            bottomMargin = dp(11)
+        })
+        val streamCount = matchingOffers.size +
+            feedMatches(title.name).count { it.videoUrl.isNotBlank() } +
+            directSources.forTitle(kind, title.name).size
+        text(if (streamCount > 0)
+            streamCount.toString() + " mögliche direkte Abspielquelle(n) in deinen Verbindungen. " +
+                "Die Zuordnung erfolgt nach Titel; Wiedergabe ist nicht garantiert."
+        else "Noch kein passender Stream im geladenen Katalog. Du kannst eine " +
+            "eigene Quelle hinzufügen oder weitere Anbieter durchsuchen.",
+            13f, Ui.SOFT, 81)
+        content.addView(Ui.button(this, "＋ Eigene Quelle hinzufügen", true) {
+            addDirectSourceDialog(kind, title.name)
+        }, Ui.lp(dp(288), dp(49)).apply { bottomMargin = dp(12) })
+        focusDetailAction(primary)
         content.addView(Ui.button(this, "Weitere IPTV-Kataloge durchsuchen", true) {
             startActivity(Intent(this, UnifiedSearchActivity::class.java)
                 .putExtra("prefill_query", title.name))
@@ -1098,53 +1235,157 @@ class NativeHubActivity : Activity() {
      * Web bookmarks never masquerade as playable media. User-pasted stream links
      * can be chosen only after validation and explicit assignment to the title.
      */
+    /** Source selection is a native TV screen, not a system AlertDialog. */
     private fun chooseMySource(kind: String, title: String) {
-        val labels = mutableListOf<String>()
-        val commands = mutableListOf<() -> Unit>()
-
-        snapshot?.lookup(kind, title).orEmpty().take(15).forEach { source ->
-            labels.add("▶ " + source.provider + " · IPTV")
-            commands.add { openNative(source) }
+        sourcePickerVisible = true
+        generation++
+        shell()
+        heading.text = "Abspielquelle auswählen"
+        val hero = FrameLayout(this).apply {
+            background = Ui.bg(0xFF14263D.toInt(), 16f,
+                context = this@NativeHubActivity)
         }
-        feedMatches(title).forEach { feed ->
-            if (feed.videoUrl.isNotBlank()) {
-                labels.add("▶ " + feed.provider + " · Direkter Feed-Stream")
-                commands.add {
-                    play(PlaybackOptions.Direct(feed.videoUrl, feed.title,
-                        kind, false, "feed:" + feed.id))
+        hero.addView(CinematicArtwork(this, title, "Filme", hero = true),
+            FrameLayout.LayoutParams(-1, -1))
+        hero.addView(View(this).apply {
+            background = Ui.gradient(this@NativeHubActivity,
+                intArrayOf(0xFA0B1423.toInt(), 0xED15273F.toInt(), 0x42101B31),
+                16f)
+        }, FrameLayout.LayoutParams(-1, -1))
+        val intro = Ui.vertical(this).apply {
+            setPadding(dp(24), dp(15), dp(22), dp(15))
+        }
+        intro.addView(Ui.text(this, "▶  DEIN STREAM. DEINE QUELLE.",
+            12f, Ui.FOCUS, true), Ui.lp(-1, dp(33)))
+        intro.addView(Ui.text(this, title, 29f, Ui.TEXT, true).apply {
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+        }, Ui.lp(-1, dp(75)))
+        intro.addView(Ui.text(this,
+            "Wähle einen deiner eingebundenen Anbieter. Nur tatsächlich " +
+                "zugängliche Videostreams starten im StreamHUB-Player.",
+            14f, Ui.SOFT), Ui.lp(-1, dp(52)))
+        hero.addView(intro, FrameLayout.LayoutParams(-1, -1))
+        content.addView(hero, Ui.lp(-1, dp(179)).apply { bottomMargin = dp(13) })
+
+        val candidates = snapshot?.lookup(kind, title).orEmpty()
+        val feed = feedMatches(title)
+        val own = directSources.forTitle(kind, title)
+        val playable = candidates.size + feed.count { it.videoUrl.isNotBlank() } +
+            own.size
+        text("●  " + playable + " mögliche Direktquelle(n) gefunden · " +
+            "Katalogtreffer sind keine Garantie für einen abspielbaren Stream.",
+            13f, Ui.FOCUS, 47)
+
+        var first: View? = null
+        fun option(label: String, detail: String, action: () -> Unit) {
+            val card = FrameLayout(this).apply {
+                background = Ui.bg(Ui.PANEL, 14f, context = this@NativeHubActivity)
+            }
+            val row = Ui.vertical(this).apply {
+                setPadding(dp(17), dp(7), dp(14), dp(7))
+            }
+            row.addView(Ui.text(this, label, 18f, Ui.TEXT, true).apply {
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            }, Ui.lp(-1, dp(38)))
+            row.addView(Ui.text(this, detail, 12f, Ui.SOFT).apply {
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            }, Ui.lp(-1, dp(26)))
+            card.addView(row, FrameLayout.LayoutParams(-1, -1))
+            Ui.focusCard(card, 14f, 1.035f) { focused ->
+                if (focused && ::focusLabel.isInitialized) {
+                    focusLabel.text = "●  " + label.take(66) + " · OK auswählen"
                 }
-            } else {
-                labels.add("↗ " + feed.provider + " · Webseite (kein Direktstream)")
-                commands.add { openFeedEntry(feed) }
             }
-        }
-        directSources.forTitle(kind, title).forEach { source ->
-            labels.add("▶ " + source.provider + " · Eigener Medienlink")
-            commands.add {
-                play(PlaybackOptions.Direct(source.streamUrl, title,
-                    kind, false, "direct:" + source.id))
-            }
+            card.setOnClickListener { action() }
+            content.addView(card, Ui.lp(-1, dp(79)).apply {
+                bottomMargin = dp(11)
+            })
+            if (first == null) first = card
         }
 
-        val countPlayable = labels.count { it.startsWith("▶") }
-        labels.add("＋ Direktlink für diesen Titel hinzufügen")
-        commands.add { addDirectSourceDialog(kind, title) }
-        if (directSources.forTitle(kind, title).isNotEmpty()) {
-            labels.add("⚙ Eigene Medienlinks verwalten")
-            commands.add { manageDirectSources(kind, title) }
+        if (candidates.isNotEmpty()) {
+            section("Deine IPTV-Quellen")
+            candidates.take(20).forEach { source ->
+                option("▶  " + source.provider,
+                    (when (source.kind) {
+                        "itv" -> "Live-TV-Sender"
+                        "series" -> "Serie · Episoden beim Anbieter auswählen"
+                        else -> "Film · Direkter Anbieterstream"
+                    }) + "  ·  " + source.title.take(50)) {
+                    openNative(source)
+                }
+            }
         }
-        labels.add("⌕ Weitere IPTV-Katalogseiten durchsuchen")
-        commands.add {
+        val directFeeds = feed.filter { it.videoUrl.isNotBlank() }
+        if (directFeeds.isNotEmpty()) {
+            section("Direkte Videos aus deinen Feeds")
+            directFeeds.forEach { entry ->
+                option("▶  " + entry.provider, "Öffentlich bereitgestellter Videolink") {
+                    play(PlaybackOptions.Direct(entry.videoUrl, entry.title, kind,
+                        false, "feed:" + entry.id))
+                }
+            }
+        }
+        if (own.isNotEmpty()) {
+            section("Deine gespeicherten Medienlinks")
+            own.forEach { entry ->
+                option("▶  " + entry.provider, "Privat hinterlegter Direktlink") {
+                    play(PlaybackOptions.Direct(entry.streamUrl, title, kind,
+                        false, "direct:" + entry.id))
+                }
+            }
+        }
+        if (playable == 0) {
+            section("Noch kein Direktstream für diesen Titel")
+            text("Prüfe die erweiterten IPTV-Kataloge oder füge einen vom " +
+                "Anbieter bereitgestellten Videolink hinzu. Ein gewöhnliches " +
+                "Webseiten-Lesezeichen ist noch kein abspielbarer Stream.",
+                14f, Ui.SOFT, 100)
+        }
+        section("Weitere Möglichkeiten")
+        option("＋  Eigenen Direktlink hinzufügen",
+            "Unterstützte Video-URLs werden verschlüsselt gespeichert") {
+            addDirectSourceDialog(kind, title)
+        }
+        if (own.isNotEmpty()) {
+            option("⚙  Eigene Medienlinks bearbeiten",
+                "Nicht mehr gültige Links entfernen") {
+                manageDirectSources(kind, title)
+            }
+        }
+        option("⌕  Weitere IPTV-Katalogseiten durchsuchen",
+            "Durchsucht mehr Anbieterinhalte als der Startseitenindex") {
             startActivity(Intent(this, UnifiedSearchActivity::class.java)
                 .putExtra("prefill_query", title))
         }
-        AlertDialog.Builder(this).setTitle("StreamHUB · Meine Quellen")
-            .setMessage(title + "\n" + countPlayable.toString() +
-                " direkte Abspieloption(en) aus deinen konfigurierten Quellen. " +
-                "Titelgleichheit und Erreichbarkeit werden erst beim Öffnen geprüft.")
-            .setItems(labels.toTypedArray()) { _, index ->
-                commands.getOrNull(index)?.invoke()
-            }.setNegativeButton("Abbrechen", null).show()
+        if (feed.any { it.videoUrl.isBlank() }) {
+            section("Nur als Webseite verfügbar")
+            feed.filter { it.videoUrl.isBlank() }.forEach { entry ->
+                option("↗  " + entry.provider,
+                    "Externe Anbieter-Seite · keine native Wiedergabe") {
+                    openFeedEntry(entry)
+                }
+            }
+        }
+        content.addView(Ui.button(this, "←  ZURÜCK ZUM FILM", true) {
+            returnToDetail()
+        }, Ui.lp(dp(279), dp(51)).apply {
+            topMargin = dp(12)
+            bottomMargin = dp(23)
+        })
+        first?.let { focusDetailAction(it) }
+    }
+
+    private fun returnToDetail() {
+        sourcePickerVisible = false
+        when {
+            currentTitle != null -> showDetail(currentTitle!!)
+            currentNative != null -> showNativeDetail(currentNative!!)
+            else -> showPage(page)
+        }
     }
 
     private fun addDirectSourceButtons(kind: String, title: String) {
@@ -1378,7 +1619,8 @@ class NativeHubActivity : Activity() {
 
     @Deprecated("Android TV navigation")
     override fun onBackPressed() {
-        if (nativeDetailVisible) showPage(page)
+        if (sourcePickerVisible) returnToDetail()
+        else if (nativeDetailVisible) showPage(page)
         else if (page != Page.HOME) showPage(Page.HOME)
         else super.onBackPressed()
     }
